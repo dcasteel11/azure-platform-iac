@@ -1,0 +1,36 @@
+# Local .terraform directories (providers and modules downloaded by init)
+**/.terraform/*
+
+# State files - these can contain secrets and must never be committed.
+# Remote state is set up in roadmap step 3.
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Saved plan files can also contain sensitive values
+*.tfplan
+tfplan
+*.out
+
+# Variable files that may hold secrets or personal values.
+# Per-environment files under environments/ are committed on purpose
+# and must never contain secrets.
+*.auto.tfvars
+*.auto.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Editor and OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,90 @@
+# -----------------------------------------------------------------------------
+# CI: static checks on every push and pull request.
+#
+# Nothing here talks to Azure, so it needs no credentials and is safe to run
+# on forks. Deploy (plan/apply with OIDC) is a separate workflow added in
+# roadmap step 4.
+# -----------------------------------------------------------------------------
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: the jobs only need to read the code.
+permissions:
+  contents: read
+
+# Cancel an older run when a newer commit lands on the same branch or PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_VERSION: "1.9.8"
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  terraform:
+    name: fmt and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      # Fails if any .tf file is not in canonical format.
+      # Fix locally with: terraform fmt -recursive
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+
+      # -backend=false: download providers and modules only, no state access,
+      # so no Azure credentials are needed.
+      - name: terraform init
+        run: terraform init -backend=false -input=false
+
+      # Checks syntax, types and references across the root and all modules.
+      - name: terraform validate
+        run: terraform validate
+
+  tflint:
+    name: tflint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      # The token avoids GitHub API rate limits when downloading plugins.
+      - name: tflint init
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: tflint
+        run: tflint --recursive --format compact
+
+  checkov:
+    name: checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Security and compliance scan of the Terraform code.
+      # soft_fail reports findings without failing the build while the
+      # platform is being built out. Tighten this once the baseline is clean.
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform,github_actions
+          soft_fail: true
+          quiet: true

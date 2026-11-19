@@ -1,0 +1,12 @@
+# Keep GitHub Actions and the Terraform provider up to date with weekly PRs.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: terraform
+    directory: /
+    schedule:
+      interval: weekly

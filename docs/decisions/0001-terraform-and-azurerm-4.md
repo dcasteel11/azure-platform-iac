@@ -1,6 +1,6 @@
 # 0001. Use Terraform with the azurerm 4.x provider and static checks in CI
 
-- Status: Accepted
+- Status: Accepted, provider version amended by [0002](0002-upgrade-to-azurerm-5.md)
 - Date: 2026-11-19
 
 ## Context

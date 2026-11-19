@@ -14,10 +14,10 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 |------|-------|
 | Repo scaffold and CI | Done |
 | Naming and tagging | Planned |
-| Remote state | Planned |
-| Environments (dev, prod) | Planned |
-| Logging, networking, Key Vault, policy | Planned |
-| Workload, budget, OIDC deploy, drift detection | Planned |
+| OIDC bootstrap and remote state | Planned |
+| Deploy pipeline and budget alert | Planned |
+| Environments, logging, networking, Key Vault, policy | Planned |
+| Workload and drift detection | Planned |
 
 ## Repository layout
 
@@ -30,7 +30,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 │   └── decisions/         # Architecture Decision Records
 ├── main.tf                # root module that composes the platform
 ├── providers.tf           # azurerm provider (no IDs or secrets in code)
-├── versions.tf            # Terraform >= 1.6, azurerm ~> 4.0
+├── versions.tf            # Terraform >= 1.6, azurerm ~> 5.0
 ├── .tflint.hcl            # lint rules (terraform + azurerm rulesets)
 └── ROADMAP.md
 ```

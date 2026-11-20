@@ -8,6 +8,7 @@ An ADR captures one significant decision: the context, what was decided, and the
 |---|-------|--------|
 | [0001](0001-terraform-and-azurerm-4.md) | Use Terraform with the azurerm 4.x provider and static checks in CI | Accepted, amended by 0002 |
 | [0002](0002-upgrade-to-azurerm-5.md) | Upgrade to the azurerm 5.x provider before deploying anything | Accepted |
+| [0003](0003-naming-and-tagging.md) | One naming and tagging module for every resource | Accepted |
 
 ## Template
 

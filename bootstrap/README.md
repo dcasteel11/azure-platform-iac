@@ -43,7 +43,7 @@ cd azure-platform-iac
 # Optional: pick the subscription if you have more than one
 az account set --subscription "<subscription name>"
 
-GITHUB_REPO=<owner>/azure-platform-iac ./bootstrap/bootstrap.sh
+GITHUB_REPO=<owner>/azure-platform-iac bash bootstrap/bootstrap.sh
 ```
 
 Optional settings, all with defaults:

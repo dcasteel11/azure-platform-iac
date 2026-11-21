@@ -14,7 +14,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 |------|-------|
 | Repo scaffold and CI | Done |
 | Naming and tagging | Done |
-| OIDC bootstrap and remote state | Planned |
+| OIDC bootstrap and remote state | Done |
 | Deploy pipeline and budget alert | Planned |
 | Environments, logging, networking, Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
@@ -26,10 +26,12 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 ├── .github/
 │   ├── workflows/ci.yml   # fmt, validate, test, TFLint, Checkov on every push and PR
 │   └── dependabot.yml     # weekly updates for Actions and the azurerm provider
+├── bootstrap/             # one-time script: state storage and GitHub OIDC identity
 ├── docs/                  # architecture, runbook, getting started, ADRs
 │   └── decisions/         # Architecture Decision Records
 ├── modules/
 │   └── naming/            # naming convention, required tags, unit tests
+├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
 ├── variables.tf           # root inputs (dev defaults)
 ├── outputs.tf             # generated names and tags
@@ -55,7 +57,7 @@ terraform -chdir=modules/naming init -backend=false
 terraform -chdir=modules/naming test
 ```
 
-Deploying to Azure is covered in `docs/getting-started.md` (roadmap step 13).
+To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
 
 ## CI checks
 
@@ -74,7 +76,7 @@ Every resource gets its name and tags from [modules/naming](modules/naming/), fo
 ## Design principles
 
 - **Everything as code**: infrastructure, policy, pipelines and docs live in this repo.
-- **No secrets in Git**: identity comes from environment variables locally and OIDC in CI.
+- **No secrets in Git**: identity comes from environment variables locally and OIDC in CI; state storage uses Entra ID auth with shared keys turned off.
 - **Small and cheap**: free-tier services first; cost guardrails are part of the roadmap.
 - **Decisions are written down**: see [docs/decisions](docs/decisions/).
 

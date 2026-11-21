@@ -4,7 +4,7 @@ The platform is built one step at a time. Each step is a working, validated chan
 
 - [x] **1. Repo scaffold** - README, ROADMAP, docs/ folder, .gitignore, version pins (azurerm ~> 5.0, see ADR 0002), CI (fmt, validate, TFLint, Checkov soft fail), Dependabot, first ADRs
 - [x] **2. Naming and tagging module** - locals-based naming convention, required tags, `terraform test` unit tests run in CI (see ADR 0003)
-- [ ] **3. Bootstrap: OIDC identity and remote state** - one-time Cloud Shell script that creates the GitHub OIDC identity (federated credentials, no secrets) and a versioned state storage account; why remote state and locking matter
+- [x] **3. Bootstrap: OIDC identity and remote state** - one-time Cloud Shell script that creates the GitHub OIDC identity (federated credentials, no secrets) and a versioned state storage account; why remote state and locking matter (see [bootstrap/](bootstrap/) and ADR 0004)
 - [ ] **4. Deploy pipeline** - plan on pull request, apply on main behind a GitHub environment approval; skips cleanly when Azure secrets are not set
 - [ ] **5. Budget and cost alert** - consumption budget with email action, in place before any billable resources
 - [ ] **6. Resource groups per environment** - dev and prod with per-environment tfvars

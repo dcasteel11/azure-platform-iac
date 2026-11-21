@@ -6,6 +6,9 @@
 *.tfstate
 *.tfstate.*
 
+# Backend settings written by bootstrap/bootstrap.sh (per subscription)
+backend.hcl
+
 # Crash logs
 crash.log
 crash.*.log

@@ -13,7 +13,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Area | State |
 |------|-------|
 | Repo scaffold and CI | Done |
-| Naming and tagging | Planned |
+| Naming and tagging | Done |
 | OIDC bootstrap and remote state | Planned |
 | Deploy pipeline and budget alert | Planned |
 | Environments, logging, networking, Key Vault, policy | Planned |
@@ -24,18 +24,22 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 ```text
 .
 ├── .github/
-│   ├── workflows/ci.yml   # fmt, validate, TFLint, Checkov on every push and PR
+│   ├── workflows/ci.yml   # fmt, validate, test, TFLint, Checkov on every push and PR
 │   └── dependabot.yml     # weekly updates for Actions and the azurerm provider
 ├── docs/                  # architecture, runbook, getting started, ADRs
 │   └── decisions/         # Architecture Decision Records
+├── modules/
+│   └── naming/            # naming convention, required tags, unit tests
 ├── main.tf                # root module that composes the platform
+├── variables.tf           # root inputs (dev defaults)
+├── outputs.tf             # generated names and tags
 ├── providers.tf           # azurerm provider (no IDs or secrets in code)
 ├── versions.tf            # Terraform >= 1.6, azurerm ~> 5.0
 ├── .tflint.hcl            # lint rules (terraform + azurerm rulesets)
 └── ROADMAP.md
 ```
 
-Modules will live under `modules/` and per-environment values under `environments/` as they are added.
+Each module under `modules/` has its own README. Per-environment values move under `environments/` in step 6.
 
 ## Quick start (no Azure account needed)
 
@@ -45,6 +49,10 @@ cd azure-platform-iac
 terraform fmt -check -recursive
 terraform init -backend=false
 terraform validate
+
+# unit tests for the naming module
+terraform -chdir=modules/naming init -backend=false
+terraform -chdir=modules/naming test
 ```
 
 Deploying to Azure is covered in `docs/getting-started.md` (roadmap step 13).
@@ -55,8 +63,13 @@ Deploying to Azure is covered in `docs/getting-started.md` (roadmap step 13).
 |-------|-----------------|--------------|
 | `terraform fmt -check` | Unformatted code | Yes |
 | `terraform validate` | Syntax, type and reference errors | Yes |
+| `terraform test` | Module behaviour (names, tags, validation rules) | Yes |
 | TFLint | Unused code, deprecated syntax, invalid Azure SKUs | Yes |
 | Checkov | Security misconfigurations | No (soft fail while building out) |
+
+## Naming and tags
+
+Every resource gets its name and tags from [modules/naming](modules/naming/), for example `rg-plat-dev-eus-001`, and carries the tags `environment`, `workload`, `owner`, `cost-center` and `managed-by`. See [ADR 0003](docs/decisions/0003-naming-and-tagging.md).
 
 ## Design principles
 

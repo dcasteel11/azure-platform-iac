@@ -51,6 +51,17 @@ jobs:
       - name: terraform validate
         run: terraform validate
 
+      # Runs the unit tests in every module that has a tests folder.
+      # The tests use "command = plan" only, so no Azure credentials are needed.
+      - name: terraform test
+        run: |
+          for dir in $(find modules -type d -name tests -exec dirname {} \;); do
+            echo "::group::terraform test $dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" test
+            echo "::endgroup::"
+          done
+
   tflint:
     name: tflint
     runs-on: ubuntu-latest

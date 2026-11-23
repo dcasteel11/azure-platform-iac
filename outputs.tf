@@ -14,3 +14,8 @@ output "tags" {
   description = "Tags applied to every resource."
   value       = module.naming.tags
 }
+
+output "budget_name" {
+  description = "Name of the subscription budget, or null when budget_enabled is false."
+  value       = one(module.budget[*].name)
+}

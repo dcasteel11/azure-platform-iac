@@ -55,7 +55,8 @@ jobs:
       # The tests use "command = plan" only, so no Azure credentials are needed.
       - name: terraform test
         run: |
-          for dir in $(find modules -type d -name tests -exec dirname {} \;); do
+          for tests in modules/*/tests; do
+            dir="${tests%/tests}"
             echo "::group::terraform test $dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" test

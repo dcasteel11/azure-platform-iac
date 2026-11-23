@@ -7,6 +7,7 @@
 #
 #   Secrets:   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
 #   Variables: TFSTATE_RESOURCE_GROUP, TFSTATE_STORAGE_ACCOUNT, TFSTATE_CONTAINER
+#   Optional:  BUDGET_ALERT_EMAILS secret (see modules/budget)
 #
 # Until those are set (for example on a fork), every job skips with a notice and
 # the run stays green.
@@ -45,6 +46,10 @@ env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  # Optional extra budget alert recipients as a JSON list, for example
+  # ["me@example.com"]. A secret, so the addresses are masked in logs.
+  # Subscription Owners get the alerts even when this is not set.
+  TF_VAR_budget_contact_emails: ${{ secrets.BUDGET_ALERT_EMAILS || '[]' }}
 
 jobs:
   # Secrets cannot be used directly in a job "if", so this job checks them once

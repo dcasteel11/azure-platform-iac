@@ -53,3 +53,22 @@ variable "extra_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "budget_enabled" {
+  description = "Create the subscription budget. Set to false if your subscription offer does not support budgets."
+  type        = bool
+  default     = true
+}
+
+variable "budget_amount" {
+  description = "Monthly spend limit for the subscription, in the billing currency. Alerts fire at 50% and 80% actual spend and at 100% forecast."
+  type        = number
+  default     = 10
+}
+
+variable "budget_contact_emails" {
+  description = "Optional extra emails for budget alerts. Subscription Owners are always emailed. Set via TF_VAR_budget_contact_emails or the BUDGET_ALERT_EMAILS GitHub secret, never in a committed file."
+  type        = list(string)
+  default     = []
+  sensitive   = true
+}

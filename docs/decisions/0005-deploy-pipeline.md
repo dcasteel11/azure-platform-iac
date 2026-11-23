@@ -17,6 +17,7 @@ The repo is public and may be forked. A fork has no Azure secrets, and a red bui
 - The apply job uses the `production` GitHub environment with required reviewers, so it waits for a human approval. The job's OIDC subject (`environment:production`) matches the federated credential created by the bootstrap.
 - Apply is skipped when the plan shows no changes.
 - A first `check` job tests whether the Azure secrets and state variables are set. If not, plan and apply skip with a notice and the run stays green.
+- Before `terraform init`, the jobs log in with `azure/login` and list the state container with the Azure CLI. A login or access problem then fails in seconds with a readable error, instead of Terraform waiting at "Initializing the backend" until the job times out (which is what happened on the first real runs, caused by an OIDC subject mismatch).
 - `concurrency` with `cancel-in-progress: false` stops two deploys from touching state at once without killing an apply mid-run. Terraform's blob lease lock is the second line of defense.
 
 ## Consequences

@@ -55,8 +55,9 @@ Optional settings, all with defaults:
 | `INSTANCE` | `001` | Instance number in names |
 | `UNIQUE_SUFFIX` | from subscription ID | Override if the storage name is taken |
 | `GITHUB_ENVIRONMENT` | `production` | GitHub environment allowed to apply |
+| `SUBJECT_FORMAT` | `id` | `id` for the OIDC subject with owner and repo IDs (newer repos), `name` for the older name-only subject |
 
-The script is safe to run again. Each step checks whether the resource already exists.
+The script is safe to run again. Each step checks whether the resource already exists, and a federated credential with an outdated subject is updated in place.
 
 ## After it runs
 
@@ -81,6 +82,25 @@ terraform plan
 3. Entra ID checks the token against the app's federated credentials. If the issuer, subject and audience match exactly, it returns an Azure access token valid for about an hour.
 
 Nothing long-lived is stored in GitHub, so there is no secret to leak or rotate.
+
+### Subject formats
+
+GitHub now includes the numeric owner and repo IDs in the subject for newer repositories:
+
+```text
+repo:<owner>@<owner-id>/<repo>@<repo-id>:pull_request      # newer repos
+repo:<owner>/<repo>:pull_request                           # older repos
+```
+
+The IDs never change, so if the repo is deleted and someone else creates one with the same name, their workflows cannot log in. The script looks up both IDs from the public GitHub API and registers this format by default. For an older repo that still sends the name-only subject, run it with `SUBJECT_FORMAT=name`.
+
+## Troubleshooting
+
+**`AADSTS700213: No matching federated identity record found for presented assertion subject '...'`** in the `azure login (OIDC)` step of `deploy.yml`.
+
+The subject GitHub sent does not match any federated credential. The error prints the exact subject. Compare it with the subjects the script printed (or with `az ad app federated-credential list --id <AZURE_CLIENT_ID> -o table`). Usually the fix is to run the script again with the right `SUBJECT_FORMAT`; it updates the existing credentials in place.
+
+**`check state access` fails with `AuthorizationPermissionMismatch`.** The GitHub identity is missing Storage Blob Data Contributor on the state account, or the role was assigned in the last few minutes. Run the script again, wait five minutes and re-run the job.
 
 ## Remove everything
 

@@ -38,6 +38,7 @@ INSTANCE="${INSTANCE:-001}"
 STATE_CONTAINER="${STATE_CONTAINER:-tfstate}"
 GITHUB_ENVIRONMENT="${GITHUB_ENVIRONMENT:-production}"
 APP_NAME="${APP_NAME:-github-${GITHUB_REPO//\//-}}"
+SUBJECT_FORMAT="${SUBJECT_FORMAT:-id}"
 
 # Short region codes, the same map as modules/naming/main.tf.
 case "${LOCATION}" in
@@ -179,24 +180,48 @@ fi
 # One federated credential per kind of workflow run that may log in.
 # GitHub puts the "subject" in its OIDC token; Entra ID only accepts tokens
 # whose subject matches exactly, so other repos and branches cannot log in.
+#
+# Subject format: GitHub now puts the owner and repo numeric IDs in the subject
+# of newer repos, for example
+#   repo:octo-org@1234/my-repo@5678:pull_request
+# instead of the older
+#   repo:octo-org/my-repo:pull_request
+# The IDs never change, so a deleted repo whose name is taken over by someone
+# else cannot log in. The script reads both IDs from the public GitHub API.
+# Set SUBJECT_FORMAT=name for an older repo that still sends the name-only
+# format. A failed login prints the subject GitHub actually sent, so compare it
+# with what this script prints if in doubt.
+if [[ "${SUBJECT_FORMAT}" == "id" ]]; then
+  log "Looking up GitHub IDs for ${GITHUB_REPO}"
+  REPO_JSON="$(curl -fsS "https://api.github.com/repos/${GITHUB_REPO}")"
+  OWNER_ID="$(jq -r '.owner.id' <<<"${REPO_JSON}")"
+  REPO_ID="$(jq -r '.id' <<<"${REPO_JSON}")"
+  SUBJECT_REPO="${GITHUB_REPO%%/*}@${OWNER_ID}/${GITHUB_REPO#*/}@${REPO_ID}"
+else
+  SUBJECT_REPO="${GITHUB_REPO}"
+fi
+
+# Create the credential, or fix its subject if an earlier run used another format.
 add_federated_credential() {
   local name="$1" subject="$2"
-  local existing
-  existing="$(az ad app federated-credential list --id "${APP_ID}" --query "[?name=='${name}'] | length(@)" -o tsv)"
-  if [[ "${existing}" != "0" ]]; then
-    echo "Federated credential '${name}' already exists"
-    return
-  fi
-  local params
+  local params current
   params="$(printf '{"name":"%s","issuer":"https://token.actions.githubusercontent.com","subject":"%s","audiences":["api://AzureADTokenExchange"]}' "${name}" "${subject}")"
-  az ad app federated-credential create --id "${APP_ID}" --parameters "${params}" --output none
-  echo "Federated credential '${name}' created"
+  current="$(az ad app federated-credential list --id "${APP_ID}" --query "[?name=='${name}'].subject | [0]" -o tsv)"
+  if [[ -z "${current}" ]]; then
+    az ad app federated-credential create --id "${APP_ID}" --parameters "${params}" --output none
+    echo "Created '${name}': ${subject}"
+  elif [[ "${current}" != "${subject}" ]]; then
+    az ad app federated-credential update --id "${APP_ID}" --federated-credential-id "${name}" --parameters "${params}" --output none
+    echo "Updated '${name}': ${subject} (was ${current})"
+  else
+    echo "'${name}' already correct: ${subject}"
+  fi
 }
 
 log "Federated credentials for ${GITHUB_REPO}"
-add_federated_credential "main-branch" "repo:${GITHUB_REPO}:ref:refs/heads/main"
-add_federated_credential "pull-requests" "repo:${GITHUB_REPO}:pull_request"
-add_federated_credential "env-${GITHUB_ENVIRONMENT}" "repo:${GITHUB_REPO}:environment:${GITHUB_ENVIRONMENT}"
+add_federated_credential "main-branch" "repo:${SUBJECT_REPO}:ref:refs/heads/main"
+add_federated_credential "pull-requests" "repo:${SUBJECT_REPO}:pull_request"
+add_federated_credential "env-${GITHUB_ENVIRONMENT}" "repo:${SUBJECT_REPO}:environment:${GITHUB_ENVIRONMENT}"
 
 # --- 5. Roles for the GitHub identity -----------------------------------------
 # Contributor can create and change resources but cannot grant access to others.

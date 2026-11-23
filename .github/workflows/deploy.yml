@@ -82,6 +82,30 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
+      # Log the Azure CLI in with the same OIDC token Terraform uses. If the
+      # federated credential does not match, this fails fast with a clear
+      # AADSTS error instead of Terraform waiting silently.
+      - name: azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Check the state container is reachable before terraform init. A wrong
+      # account name, a missing "Storage Blob Data" role or a storage firewall
+      # shows up here as a readable error within two minutes.
+      - name: check state access
+        timeout-minutes: 2
+        run: >-
+          az storage blob list
+          --account-name "${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          --container-name "${{ vars.TFSTATE_CONTAINER }}"
+          --auth-mode login
+          --num-results 5
+          --query "[].name"
+          --output tsv
+
       - name: terraform init
         timeout-minutes: 4
         env:
@@ -151,6 +175,30 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: tfplan
+
+      # Log the Azure CLI in with the same OIDC token Terraform uses. If the
+      # federated credential does not match, this fails fast with a clear
+      # AADSTS error instead of Terraform waiting silently.
+      - name: azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Check the state container is reachable before terraform init. A wrong
+      # account name, a missing "Storage Blob Data" role or a storage firewall
+      # shows up here as a readable error within two minutes.
+      - name: check state access
+        timeout-minutes: 2
+        run: >-
+          az storage blob list
+          --account-name "${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          --container-name "${{ vars.TFSTATE_CONTAINER }}"
+          --auth-mode login
+          --num-results 5
+          --query "[].name"
+          --output tsv
 
       - name: terraform init
         timeout-minutes: 4

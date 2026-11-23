@@ -16,7 +16,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Naming and tagging | Done |
 | OIDC bootstrap and remote state | Done |
 | Deploy pipeline | Done |
-| Budget alert | Planned |
+| Budget alert | Done |
 | Environments, logging, networking, Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
 
@@ -32,7 +32,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 ├── docs/                  # architecture, runbook, getting started, ADRs
 │   └── decisions/         # Architecture Decision Records
 ├── modules/
-│   └── naming/            # naming convention, required tags, unit tests
+│   ├── naming/            # naming convention, required tags, unit tests
+│   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
 ├── variables.tf           # root inputs (dev defaults)
@@ -57,6 +58,10 @@ terraform validate
 # unit tests for the naming module
 terraform -chdir=modules/naming init -backend=false
 terraform -chdir=modules/naming test
+
+# unit tests for the budget module (mock provider, no Azure needed)
+terraform -chdir=modules/budget init -backend=false
+terraform -chdir=modules/budget test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -67,13 +72,17 @@ To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to c
 |-------|-----------------|--------------|
 | `terraform fmt -check` | Unformatted code | Yes |
 | `terraform validate` | Syntax, type and reference errors | Yes |
-| `terraform test` | Module behaviour (names, tags, validation rules) | Yes |
+| `terraform test` | Module behaviour (names, tags, budget alerts, validation rules) | Yes |
 | TFLint | Unused code, deprecated syntax, invalid Azure SKUs | Yes |
 | Checkov | Security misconfigurations | No (soft fail while building out) |
 
 ## Deploy pipeline
 
 `deploy.yml` runs `terraform plan` on every pull request and shows it on the run page. On `main` it plans again, saves the plan, and waits for approval in the `production` environment before applying that exact plan. Login uses OIDC, so no client secret exists. Until the bootstrap values are added as secrets and variables, plan and apply skip with a notice. See [ADR 0005](docs/decisions/0005-deploy-pipeline.md).
+
+## Cost guardrail
+
+Before anything billable is deployed, [modules/budget](modules/budget/) puts a monthly budget on the subscription (default $10) that emails subscription Owners at 50% and 80% of actual spend and when Azure forecasts 100%. Budgets are free. Add extra recipients with the optional `BUDGET_ALERT_EMAILS` secret. See [ADR 0006](docs/decisions/0006-budget-before-resources.md).
 
 ## Naming and tags
 

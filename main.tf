@@ -26,3 +26,18 @@ module "naming" {
   cost_center   = var.cost_center
   extra_tags    = var.extra_tags
 }
+
+# Step 5: budget and cost alert.
+# The subscription ID is read at plan time from the logged-in identity, so it
+# never appears in code. Budgets are free; see modules/budget/README.md.
+data "azurerm_subscription" "current" {}
+
+module "budget" {
+  source = "./modules/budget"
+  count  = var.budget_enabled ? 1 : 0
+
+  name            = module.naming.names.budget
+  subscription_id = data.azurerm_subscription.current.id
+  amount          = var.budget_amount
+  contact_emails  = var.budget_contact_emails
+}

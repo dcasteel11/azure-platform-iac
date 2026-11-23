@@ -1,0 +1,218 @@
+# -----------------------------------------------------------------------------
+# Deploy: terraform plan on pull requests, apply on main.
+#
+# Login uses OIDC (federated credentials created by bootstrap/bootstrap.sh), so
+# no client secret is stored anywhere. The workflow needs three secrets and
+# three variables, all printed by the bootstrap script:
+#
+#   Secrets:   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   Variables: TFSTATE_RESOURCE_GROUP, TFSTATE_STORAGE_ACCOUNT, TFSTATE_CONTAINER
+#
+# Until those are set (for example on a fork), every job skips with a notice and
+# the run stays green.
+#
+# Flow:
+#   pull request  -> plan, summary on the run page
+#   push to main  -> plan, then apply that exact plan after approval in the
+#                    "production" GitHub environment
+# -----------------------------------------------------------------------------
+name: deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# id-token: write lets the job ask GitHub for an OIDC token to log in to Azure.
+permissions:
+  contents: read
+  id-token: write
+
+# Never run two deploys against the same state at once. Unlike CI, a running
+# apply must not be cancelled half way, so cancel-in-progress is off.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: "1.9.8"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  STATE_KEY: "platform.dev.tfstate"
+  # azurerm reads these to log in with the OIDC token instead of a secret.
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  # Secrets cannot be used directly in a job "if", so this job checks them once
+  # and passes a true/false flag to the others.
+  check:
+    name: check Azure settings
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          RG: ${{ vars.TFSTATE_RESOURCE_GROUP }}
+          SA: ${{ vars.TFSTATE_STORAGE_ACCOUNT }}
+          CONTAINER: ${{ vars.TFSTATE_CONTAINER }}
+        run: |
+          if [ -n "$ARM_CLIENT_ID" ] && [ -n "$ARM_TENANT_ID" ] && [ -n "$ARM_SUBSCRIPTION_ID" ] \
+             && [ -n "$RG" ] && [ -n "$SA" ] && [ -n "$CONTAINER" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Azure secrets or state variables are not set, so plan and apply are skipped. Run bootstrap/bootstrap.sh and add the values it prints."
+          fi
+
+  plan:
+    name: terraform plan
+    needs: check
+    if: needs.check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      # Log the Azure CLI in with the same OIDC token Terraform uses. If the
+      # federated credential does not match, this fails fast with a clear
+      # AADSTS error instead of Terraform waiting silently.
+      - name: azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Check the state container is reachable before terraform init. A wrong
+      # account name, a missing "Storage Blob Data" role or a storage firewall
+      # shows up here as a readable error within two minutes.
+      - name: check state access
+        timeout-minutes: 2
+        run: >-
+          az storage blob list
+          --account-name "${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          --container-name "${{ vars.TFSTATE_CONTAINER }}"
+          --auth-mode login
+          --num-results 5
+          --query "[].name"
+          --output tsv
+
+      - name: terraform init
+        timeout-minutes: 4
+        env:
+          # Re-run with "Enable debug logging" to see Terraform's own logs.
+          TF_LOG: ${{ runner.debug == '1' && 'DEBUG' || '' }}
+        run: >-
+          terraform init
+          -backend-config="resource_group_name=${{ vars.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}"
+          -backend-config="key=${{ env.STATE_KEY }}"
+
+      # -detailed-exitcode: 0 = no changes, 1 = error, 2 = changes to apply.
+      - name: terraform plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -lock-timeout=5m -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          echo "changes=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      # Show the plan on the run page so reviewers can read it.
+      - name: plan summary
+        run: |
+          {
+            echo "## Terraform plan"
+            echo
+            echo '```'
+            terraform show -no-color tfplan | tail -c 60000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Save the exact plan so apply runs what was reviewed, nothing newer.
+      - name: upload plan
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+          retention-days: 5
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+
+  apply:
+    name: terraform apply
+    needs: [check, plan]
+    if: >-
+      needs.check.outputs.configured == 'true'
+      && github.event_name != 'pull_request'
+      && github.ref == 'refs/heads/main'
+      && needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-latest
+    # The run pauses here until a required reviewer approves (set in
+    # Settings > Environments > production). The OIDC subject for this job is
+    # "environment:production", which matches a bootstrap federated credential.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      # Log the Azure CLI in with the same OIDC token Terraform uses. If the
+      # federated credential does not match, this fails fast with a clear
+      # AADSTS error instead of Terraform waiting silently.
+      - name: azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Check the state container is reachable before terraform init. A wrong
+      # account name, a missing "Storage Blob Data" role or a storage firewall
+      # shows up here as a readable error within two minutes.
+      - name: check state access
+        timeout-minutes: 2
+        run: >-
+          az storage blob list
+          --account-name "${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          --container-name "${{ vars.TFSTATE_CONTAINER }}"
+          --auth-mode login
+          --num-results 5
+          --query "[].name"
+          --output tsv
+
+      - name: terraform init
+        timeout-minutes: 4
+        env:
+          # Re-run with "Enable debug logging" to see Terraform's own logs.
+          TF_LOG: ${{ runner.debug == '1' && 'DEBUG' || '' }}
+        run: >-
+          terraform init
+          -backend-config="resource_group_name=${{ vars.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}"
+          -backend-config="key=${{ env.STATE_KEY }}"
+
+      # Applying a saved plan fails if the state changed since the plan, so
+      # nothing unreviewed can slip in.
+      - name: terraform apply
+        run: terraform apply -lock-timeout=5m tfplan

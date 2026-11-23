@@ -15,7 +15,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Repo scaffold and CI | Done |
 | Naming and tagging | Done |
 | OIDC bootstrap and remote state | Done |
-| Deploy pipeline and budget alert | Planned |
+| Deploy pipeline | Done |
+| Budget alert | Planned |
 | Environments, logging, networking, Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
 
@@ -25,6 +26,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 .
 ├── .github/
 │   ├── workflows/ci.yml   # fmt, validate, test, TFLint, Checkov on every push and PR
+│   ├── workflows/deploy.yml # plan on PR, approved apply on main (OIDC, no secrets)
 │   └── dependabot.yml     # weekly updates for Actions and the azurerm provider
 ├── bootstrap/             # one-time script: state storage and GitHub OIDC identity
 ├── docs/                  # architecture, runbook, getting started, ADRs
@@ -68,6 +70,10 @@ To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to c
 | `terraform test` | Module behaviour (names, tags, validation rules) | Yes |
 | TFLint | Unused code, deprecated syntax, invalid Azure SKUs | Yes |
 | Checkov | Security misconfigurations | No (soft fail while building out) |
+
+## Deploy pipeline
+
+`deploy.yml` runs `terraform plan` on every pull request and shows it on the run page. On `main` it plans again, saves the plan, and waits for approval in the `production` environment before applying that exact plan. Login uses OIDC, so no client secret exists. Until the bootstrap values are added as secrets and variables, plan and apply skip with a notice. See [ADR 0005](docs/decisions/0005-deploy-pipeline.md).
 
 ## Naming and tags
 

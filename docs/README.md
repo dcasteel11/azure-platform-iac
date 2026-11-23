@@ -5,7 +5,7 @@ This folder holds the written side of the platform. Docs are added alongside the
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [decisions/](decisions/) | Architecture Decision Records (ADRs): one short file per significant choice | Started |
-| architecture.md | What gets deployed and how the pieces connect, with a Mermaid diagram | Planned (step 13) |
+| [architecture.md](architecture.md) | What is deployed, how the pieces connect, and the development to publish workflow, with Mermaid diagrams | Started |
 | runbook.md | How to deploy, roll back and destroy | Planned (step 13) |
 | getting-started.md | Azure free account, OIDC setup, GitHub secrets, first deploy | Planned (step 13) |
 

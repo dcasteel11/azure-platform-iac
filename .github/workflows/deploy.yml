@@ -40,6 +40,9 @@ env:
   TF_VERSION: "1.9.8"
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
+  # The pipeline deploys the dev environment. Its values come from the tfvars
+  # file and it has its own state key, so prod can never share dev's state.
+  TFVARS_FILE: "environments/dev.tfvars"
   STATE_KEY: "platform.dev.tfstate"
   # azurerm reads these to log in with the OIDC token instead of a secret.
   ARM_USE_OIDC: "true"
@@ -128,7 +131,7 @@ jobs:
         id: plan
         run: |
           set +e
-          terraform plan -lock-timeout=5m -detailed-exitcode -out=tfplan
+          terraform plan -var-file="$TFVARS_FILE" -lock-timeout=5m -detailed-exitcode -out=tfplan
           code=$?
           set -e
           if [ "$code" -eq 1 ]; then exit 1; fi

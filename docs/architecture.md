@@ -50,7 +50,9 @@ The `<suffix>` is four characters derived from the subscription ID, because stor
 | `providers.tf`, `versions.tf` | azurerm `~> 5.0`, Terraform `>= 1.6`. No credentials in code |
 | `main.tf`, `variables.tf`, `outputs.tf` | Root module. Composes the platform and exposes generated names and tags |
 | `modules/naming/` | Cloud Adoption Framework naming (`rg-plat-dev-eus-001`) and five required tags, with `terraform test` unit tests |
-| `docs/decisions/` | Architecture Decision Records 0001 to 0005 |
+| `modules/resource-groups/` | One resource group per purpose (`core`, `app`) per environment, for example `rg-plat-core-dev-eus-001` |
+| `environments/` | `dev.tfvars` and `prod.tfvars`; dev is deployed by the pipeline with state key `platform.dev.tfstate`, prod uses `platform.prod.tfstate` (see ADR 0007) |
+| `docs/decisions/` | Architecture Decision Records 0001 to 0007 |
 
 ## Environment topology
 
@@ -151,6 +153,8 @@ Each significant choice has its own record in [decisions/](decisions/):
 - [0003](decisions/0003-naming-and-tagging.md) Naming and tagging convention
 - [0004](decisions/0004-bootstrap-oidc-and-remote-state.md) Bootstrap with OIDC and remote state
 - [0005](decisions/0005-deploy-pipeline.md) Plan on pull request, apply a saved plan on main behind an approval
+- [0006](decisions/0006-budget-before-resources.md) A subscription budget before any billable resource
+- [0007](decisions/0007-environments-with-tfvars.md) Environments via tfvars files and separate state keys
 
 ## Lesson learned during setup
 

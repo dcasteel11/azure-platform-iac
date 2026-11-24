@@ -86,3 +86,41 @@ run "rejects_unknown_environment" {
   # The plan must fail on the environment validation rule.
   expect_failures = [var.environment]
 }
+
+run "resource_group_names_include_the_purpose" {
+  command = plan
+
+  variables {
+    resource_group_purposes = ["core", "app"]
+  }
+
+  assert {
+    condition     = output.resource_group_names.core == "rg-plat-core-dev-eus-001"
+    error_message = "Core resource group should be rg-plat-core-dev-eus-001, got ${output.resource_group_names.core}."
+  }
+
+  assert {
+    condition     = length(output.resource_group_names) == 2
+    error_message = "There should be one name per purpose."
+  }
+}
+
+run "rejects_repeated_resource_group_purpose" {
+  command = plan
+
+  variables {
+    resource_group_purposes = ["core", "core"]
+  }
+
+  expect_failures = [var.resource_group_purposes]
+}
+
+run "rejects_invalid_resource_group_purpose" {
+  command = plan
+
+  variables {
+    resource_group_purposes = ["Core-Services"]
+  }
+
+  expect_failures = [var.resource_group_purposes]
+}

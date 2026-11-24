@@ -7,7 +7,7 @@ The platform is built one step at a time. Each step is a working, validated chan
 - [x] **3. Bootstrap: OIDC identity and remote state** - one-time Cloud Shell script that creates the GitHub OIDC identity (federated credentials, no secrets) and a versioned state storage account; why remote state and locking matter (see [bootstrap/](bootstrap/) and ADR 0004)
 - [x] **4. Deploy pipeline** - plan on pull request, apply a saved plan on main behind a GitHub environment approval; skips cleanly when Azure secrets are not set (see [deploy.yml](.github/workflows/deploy.yml) and ADR 0005)
 - [x] **5. Budget and cost alert** - subscription consumption budget with actual and forecast email alerts to Owners, in place before any billable resources; mock-provider unit tests (see [modules/budget](modules/budget/) and ADR 0006)
-- [ ] **6. Resource groups per environment** - dev and prod with per-environment tfvars
+- [x] **6. Resource groups per environment** - dev and prod tfvars with separate state keys, `core` and `app` resource groups per environment named by the naming module; mock-provider unit tests (see [environments/](environments/), [modules/resource-groups](modules/resource-groups/) and ADR 0007)
 - [ ] **7. Log Analytics workspace** - free tier limits explained, diagnostic settings
 - [ ] **8. Networking** - reuse [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) as a module source (widen its azurerm constraint to accept 5.x, see ADR 0002)
 - [ ] **9. Key Vault** - RBAC authorization, private access notes
@@ -18,8 +18,10 @@ The platform is built one step at a time. Each step is a working, validated chan
 
 ## Later
 
+- Prod stage in the deploy pipeline: plan and apply `environments/prod.tfvars` with its own state key after dev succeeds
+- Delete locks on prod resource groups (needs a role beyond Contributor for the pipeline)
 - Private endpoints
 - Defender for Cloud (free tier)
 - Entra groups and RBAC as code
-- Module tests with `terraform test` for the remaining modules (naming and budget already have them)
+- Module tests with `terraform test` for every new module (naming, budget and resource-groups already have them)
 - Budget action group that runs automation (for example, shut down dev resources) at 100%

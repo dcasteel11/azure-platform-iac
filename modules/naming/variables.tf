@@ -87,3 +87,19 @@ variable "extra_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "resource_group_purposes" {
+  description = "Optional short purposes, one per resource group, for example [\"core\", \"app\"]. Each becomes a name in the resource_group_names output. 2 to 10 lowercase letters or digits, starting with a letter."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for p in var.resource_group_purposes : can(regex("^[a-z][a-z0-9]{1,9}$", p))])
+    error_message = "Each resource group purpose must be 2 to 10 lowercase letters or digits, starting with a letter."
+  }
+
+  validation {
+    condition     = length(distinct(var.resource_group_purposes)) == length(var.resource_group_purposes)
+    error_message = "Resource group purposes must not repeat."
+  }
+}

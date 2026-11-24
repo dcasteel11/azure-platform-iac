@@ -18,6 +18,8 @@ Based on the [Cloud Adoption Framework](https://learn.microsoft.com/azure/cloud-
 | Storage account | `st<workload><env><region><instance><suffix>` | `stplatdeveus001` |
 | Key Vault | `kv-<workload>-<env>-<region><suffix>` | `kv-plat-dev-eus` |
 
+Resource groups split by purpose add the purpose after the workload: `rg-plat-core-dev-eus-001`. Pass the purposes in `resource_group_purposes` and read the names from `resource_group_names`.
+
 Standard abbreviations: `rg`, `log`, `vnet`, `snet`, `nsg`, `id`, `stapp`, `func`, `asp`, `ag`, `budget`.
 
 ## Inputs
@@ -32,12 +34,14 @@ Standard abbreviations: `rg`, `log`, `vnet`, `snet`, `nsg`, `id`, `stapp`, `func
 | `owner` | string | required | Owning team for the `owner` tag (a team name, not personal data) |
 | `cost_center` | string | required | Value for the `cost-center` tag |
 | `extra_tags` | map(string) | `{}` | Extra tags; required tags win on a key clash |
+| `resource_group_purposes` | list(string) | `[]` | Optional purposes, each 2 to 10 lowercase letters or digits, for example `["core", "app"]` |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
 | `names` | Map of resource type to name, for example `names.resource_group` |
+| `resource_group_names` | Map of purpose to resource group name, for example `resource_group_names.core = "rg-plat-core-dev-eus-001"` |
 | `tags` | Required tags merged with `extra_tags` |
 | `required_tag_keys` | Sorted list of required tag keys, for Azure Policy later |
 | `location_short` | Short region code, for example `eus` |
@@ -70,7 +74,7 @@ terraform init -backend=false
 terraform test
 ```
 
-The tests in `tests/naming.tftest.hcl` check the name pattern, prove the longest allowed inputs still fit Azure length limits, check that required tags cannot be overridden, and check that an invalid environment is rejected. CI runs them on every push and pull request.
+The tests in `tests/naming.tftest.hcl` check the name pattern, prove the longest allowed inputs still fit Azure length limits, check that required tags cannot be overridden, check resource group names per purpose, and check that an invalid environment or purpose is rejected. CI runs them on every push and pull request.
 
 ## Design notes
 

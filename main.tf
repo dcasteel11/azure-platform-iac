@@ -25,6 +25,20 @@ module "naming" {
   owner         = var.owner
   cost_center   = var.cost_center
   extra_tags    = var.extra_tags
+
+  resource_group_purposes = var.resource_group_purposes
+}
+
+# Step 6: resource groups per environment.
+# The same code runs for every environment; only the tfvars file changes:
+#   terraform plan -var-file=environments/dev.tfvars
+# Each environment also has its own state file (see environments/README.md).
+module "resource_groups" {
+  source = "./modules/resource-groups"
+
+  names    = module.naming.resource_group_names
+  location = var.location
+  tags     = module.naming.tags
 }
 
 # Step 5: budget and cost alert.

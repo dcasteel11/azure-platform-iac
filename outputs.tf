@@ -15,6 +15,16 @@ output "tags" {
   value       = module.naming.tags
 }
 
+output "resource_group_names" {
+  description = "Map of purpose to resource group name, for example resource_group_names.core."
+  value       = module.resource_groups.names
+}
+
+output "resource_group_ids" {
+  description = "Map of purpose to resource group ID."
+  value       = module.resource_groups.ids
+}
+
 output "budget_name" {
   description = "Name of the subscription budget, or null when budget_enabled is false."
   value       = one(module.budget[*].name)

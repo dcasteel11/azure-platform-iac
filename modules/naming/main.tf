@@ -66,6 +66,16 @@ locals {
 
   names = merge(local.standard_names, local.unique_names)
 
+  # Resource groups split by purpose, so one environment can hold several:
+  #   "rg-<workload>-<purpose>-<environment>-<region>-<instance>"
+  #   example: rg-plat-core-dev-eus-001
+  # Longest case: 2 + 1 + 6 + 1 + 10 + 1 + 4 + 1 + 4 + 1 + 3 = 34 characters,
+  # well inside the 90 character limit for resource group names.
+  resource_group_names = {
+    for purpose in var.resource_group_purposes :
+    purpose => join("-", ["rg", var.workload, purpose, var.environment, local.region, var.instance])
+  }
+
   # Tags every resource must carry. Azure Policy (roadmap step 10) will deny
   # resources that are missing these keys, so the keys are also an output.
   required_tags = {

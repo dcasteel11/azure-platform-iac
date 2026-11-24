@@ -12,6 +12,7 @@ An ADR captures one significant decision: the context, what was decided, and the
 | [0004](0004-bootstrap-oidc-and-remote-state.md) | Bootstrap OIDC and remote state with a one-time CLI script | Accepted |
 | [0005](0005-deploy-pipeline.md) | Plan on pull request, apply a saved plan on main behind an approval | Accepted |
 | [0006](0006-budget-before-resources.md) | A subscription budget with Owner alerts before any billable resource | Accepted |
+| [0007](0007-environments-with-tfvars.md) | One root module per environment via tfvars files and separate state keys | Accepted |
 
 ## Template
 

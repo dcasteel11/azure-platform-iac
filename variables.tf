@@ -2,8 +2,9 @@
 # Root inputs
 #
 # Defaults describe a dev lab so "terraform plan" works with no tfvars file.
-# Per-environment values (dev, prod) move into environments/*.tfvars in
-# roadmap step 6. Detailed validation lives in modules/naming/variables.tf.
+# Per-environment values live in environments/dev.tfvars and
+# environments/prod.tfvars and are passed with -var-file. Detailed validation
+# lives in modules/naming/variables.tf.
 # -----------------------------------------------------------------------------
 
 variable "workload" {
@@ -52,6 +53,12 @@ variable "extra_tags" {
   description = "Optional extra tags added to every resource."
   type        = map(string)
   default     = {}
+}
+
+variable "resource_group_purposes" {
+  description = "Resource groups to create in this environment, one per purpose, for example [\"core\", \"app\"]."
+  type        = list(string)
+  default     = ["core", "app"]
 }
 
 variable "budget_enabled" {

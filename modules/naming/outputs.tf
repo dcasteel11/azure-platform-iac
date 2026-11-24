@@ -3,6 +3,11 @@ output "names" {
   value       = local.names
 }
 
+output "resource_group_names" {
+  description = "Map of purpose to resource group name, one entry per resource_group_purposes item, for example resource_group_names.core = \"rg-plat-core-dev-eus-001\"."
+  value       = local.resource_group_names
+}
+
 output "tags" {
   description = "Tags to apply to every resource: the required tags plus any extra_tags."
   value       = local.tags

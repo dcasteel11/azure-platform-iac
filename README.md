@@ -17,7 +17,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | OIDC bootstrap and remote state | Done |
 | Deploy pipeline | Done |
 | Budget alert | Done |
-| Environments, logging, networking, Key Vault, policy | Planned |
+| Environments (dev, prod) and resource groups | Done |
+| Logging, networking, Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
 
 ## Repository layout
@@ -29,10 +30,12 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 │   ├── workflows/deploy.yml # plan on PR, approved apply on main (OIDC, no secrets)
 │   └── dependabot.yml     # weekly updates for Actions and the azurerm provider
 ├── bootstrap/             # one-time script: state storage and GitHub OIDC identity
+├── environments/          # dev.tfvars and prod.tfvars, one state key each
 ├── docs/                  # architecture, runbook, getting started, ADRs
 │   └── decisions/         # Architecture Decision Records
 ├── modules/
 │   ├── naming/            # naming convention, required tags, unit tests
+│   ├── resource-groups/   # resource groups per purpose, unit tests
 │   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
@@ -44,7 +47,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 └── ROADMAP.md
 ```
 
-Each module under `modules/` has its own README. Per-environment values move under `environments/` in step 6.
+Each module under `modules/` has its own README.
 
 ## Quick start (no Azure account needed)
 
@@ -62,6 +65,10 @@ terraform -chdir=modules/naming test
 # unit tests for the budget module (mock provider, no Azure needed)
 terraform -chdir=modules/budget init -backend=false
 terraform -chdir=modules/budget test
+
+# unit tests for the resource-groups module (mock provider)
+terraform -chdir=modules/resource-groups init -backend=false
+terraform -chdir=modules/resource-groups test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -83,6 +90,10 @@ To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to c
 ## Cost guardrail
 
 Before anything billable is deployed, [modules/budget](modules/budget/) puts a monthly budget on the subscription (default $10) that emails subscription Owners at 50% and 80% of actual spend and when Azure forecasts 100%. Budgets are free. Add extra recipients with the optional `BUDGET_ALERT_EMAILS` secret. See [ADR 0006](docs/decisions/0006-budget-before-resources.md).
+
+## Environments
+
+Dev and prod run the same Terraform code. Only the values in [environments/](environments/) and the state key differ, so a dev change can never touch prod state. Each environment gets a `core` resource group for shared platform services and an `app` resource group for the workload, for example `rg-plat-core-dev-eus-001`. The pipeline deploys dev; prod is planned locally for now. See [ADR 0007](docs/decisions/0007-environments-with-tfvars.md).
 
 ## Naming and tags
 

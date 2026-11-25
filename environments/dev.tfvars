@@ -22,3 +22,7 @@ resource_group_purposes = ["core", "app"]
 # is deployed first.
 budget_enabled = true
 budget_amount  = 10
+
+# The subscription activity log goes to dev's workspace for the same reason:
+# one subscription, one diagnostic setting. See modules/log-analytics.
+activity_log_enabled = true

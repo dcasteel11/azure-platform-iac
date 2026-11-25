@@ -79,3 +79,21 @@ variable "budget_contact_emails" {
   default     = []
   sensitive   = true
 }
+
+variable "log_analytics_retention_days" {
+  description = "Days the Log Analytics workspace keeps data. Up to 31 days is free."
+  type        = number
+  default     = 30
+}
+
+variable "log_analytics_daily_quota_gb" {
+  description = "Daily ingestion cap for the workspace, in GB. 0.15 keeps a month inside the free 5 GB. -1 removes the cap."
+  type        = number
+  default     = 0.15
+}
+
+variable "activity_log_enabled" {
+  description = "Send the subscription activity log to this environment's workspace. Subscription-wide, so enable it in one environment only."
+  type        = bool
+  default     = false
+}

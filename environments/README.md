@@ -13,9 +13,11 @@ One `.tfvars` file per environment. The Terraform code in the repo root is the s
 |----------|-----|------|
 | Resource group `core` (shared platform services) | `rg-plat-core-dev-eus-001` | `rg-plat-core-prod-eus-001` |
 | Resource group `app` (the workload) | `rg-plat-app-dev-eus-001` | `rg-plat-app-prod-eus-001` |
+| Log Analytics workspace (in `core`) | `log-plat-dev-eus-001` | `log-plat-prod-eus-001` |
 | Subscription budget | Yes | No, dev owns it (one subscription) |
+| Subscription activity log to the workspace | Yes | No, dev owns it (one subscription) |
 
-Resource groups are free.
+Resource groups and budgets are free. The workspaces stay inside the free Log Analytics allowance with a 30 day retention and a 0.15 GB daily cap.
 
 ## Usage
 
@@ -44,6 +46,7 @@ terraform plan -var-file=environments/prod.tfvars
 | `extra_tags` | Optional extra tags, for example `criticality` in prod |
 | `resource_group_purposes` | Resource groups to create, one per purpose |
 | `budget_enabled`, `budget_amount` | Subscription budget (only one environment should own it) |
+| `activity_log_enabled` | Send the subscription activity log to this environment's workspace (only one environment should own it) |
 
 ## Design notes
 

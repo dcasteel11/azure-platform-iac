@@ -55,3 +55,24 @@ module "budget" {
   amount          = var.budget_amount
   contact_emails  = var.budget_contact_emails
 }
+
+# Step 7: Log Analytics workspace and diagnostic settings.
+# One workspace per environment, in the core resource group, capped at a daily
+# ingestion quota that keeps the month inside the free 5 GB. Later modules send
+# their diagnostics to module.log_analytics.id.
+module "log_analytics" {
+  source = "./modules/log-analytics"
+
+  name                = module.naming.names.log_analytics_workspace
+  location            = var.location
+  resource_group_name = module.resource_groups.names["core"]
+  tags                = module.naming.tags
+
+  retention_in_days = var.log_analytics_retention_days
+  daily_quota_gb    = var.log_analytics_daily_quota_gb
+
+  # The activity log setting covers the whole subscription, so only the
+  # environment with activity_log_enabled = true creates it (dev, see tfvars).
+  activity_log_enabled = var.activity_log_enabled
+  subscription_id      = data.azurerm_subscription.current.id
+}

@@ -51,8 +51,9 @@ The `<suffix>` is four characters derived from the subscription ID, because stor
 | `main.tf`, `variables.tf`, `outputs.tf` | Root module. Composes the platform and exposes generated names and tags |
 | `modules/naming/` | Cloud Adoption Framework naming (`rg-plat-dev-eus-001`) and five required tags, with `terraform test` unit tests |
 | `modules/resource-groups/` | One resource group per purpose (`core`, `app`) per environment, for example `rg-plat-core-dev-eus-001` |
+| `modules/log-analytics/` | Log Analytics workspace per environment in the `core` group (`log-plat-dev-eus-001`), 30 day retention, 0.15 GB daily cap; dev also receives the subscription activity log (see ADR 0008) |
 | `environments/` | `dev.tfvars` and `prod.tfvars`; dev is deployed by the pipeline with state key `platform.dev.tfstate`, prod uses `platform.prod.tfstate` (see ADR 0007) |
-| `docs/decisions/` | Architecture Decision Records 0001 to 0007 |
+| `docs/decisions/` | Architecture Decision Records 0001 to 0008 |
 
 ## Environment topology
 

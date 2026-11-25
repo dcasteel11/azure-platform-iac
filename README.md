@@ -18,7 +18,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Deploy pipeline | Done |
 | Budget alert | Done |
 | Environments (dev, prod) and resource groups | Done |
-| Logging, networking, Key Vault, policy | Planned |
+| Logging (Log Analytics, activity log) | Done |
+| Networking, Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
 
 ## Repository layout
@@ -36,6 +37,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 ├── modules/
 │   ├── naming/            # naming convention, required tags, unit tests
 │   ├── resource-groups/   # resource groups per purpose, unit tests
+│   ├── log-analytics/     # workspace, activity log and audit diagnostics, unit tests
 │   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
@@ -69,6 +71,10 @@ terraform -chdir=modules/budget test
 # unit tests for the resource-groups module (mock provider)
 terraform -chdir=modules/resource-groups init -backend=false
 terraform -chdir=modules/resource-groups test
+
+# unit tests for the log-analytics module (mock provider)
+terraform -chdir=modules/log-analytics init -backend=false
+terraform -chdir=modules/log-analytics test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -94,6 +100,10 @@ Before anything billable is deployed, [modules/budget](modules/budget/) puts a m
 ## Environments
 
 Dev and prod run the same Terraform code. Only the values in [environments/](environments/) and the state key differ, so a dev change can never touch prod state. Each environment gets a `core` resource group for shared platform services and an `app` resource group for the workload, for example `rg-plat-core-dev-eus-001`. The pipeline deploys dev; prod is planned locally for now. See [ADR 0007](docs/decisions/0007-environments-with-tfvars.md).
+
+## Logging
+
+Each environment has a Log Analytics workspace in its `core` resource group, for example `log-plat-dev-eus-001`, built by [modules/log-analytics](modules/log-analytics/). It keeps 30 days of data and has a 0.15 GB daily ingestion cap, which keeps a month inside the free 5 GB. The subscription activity log (every create, change and delete) is sent to the dev workspace, and the workspace logs who queried it. Later steps send their diagnostics to the same place. See [ADR 0008](docs/decisions/0008-log-analytics-free-tier.md).
 
 ## Naming and tags
 

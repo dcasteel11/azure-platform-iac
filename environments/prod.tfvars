@@ -24,3 +24,7 @@ extra_tags = {
 # The subscription budget is owned by dev (see dev.tfvars). Creating it here
 # too would add a second budget on the same subscription and double the emails.
 budget_enabled = false
+
+# The subscription activity log is sent to dev's workspace (see dev.tfvars).
+# prod still gets its own workspace for its own resources.
+activity_log_enabled = false

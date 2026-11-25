@@ -13,6 +13,7 @@ An ADR captures one significant decision: the context, what was decided, and the
 | [0005](0005-deploy-pipeline.md) | Plan on pull request, apply a saved plan on main behind an approval | Accepted |
 | [0006](0006-budget-before-resources.md) | A subscription budget with Owner alerts before any billable resource | Accepted |
 | [0007](0007-environments-with-tfvars.md) | One root module per environment via tfvars files and separate state keys | Accepted |
+| [0008](0008-log-analytics-free-tier.md) | A Log Analytics workspace per environment, capped inside the free tier | Accepted |
 
 ## Template
 

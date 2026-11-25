@@ -29,3 +29,13 @@ output "budget_name" {
   description = "Name of the subscription budget, or null when budget_enabled is false."
   value       = one(module.budget[*].name)
 }
+
+output "log_analytics_workspace_name" {
+  description = "Name of the environment's Log Analytics workspace."
+  value       = module.log_analytics.name
+}
+
+output "log_analytics_workspace_id" {
+  description = "Resource ID of the Log Analytics workspace, used by diagnostic settings in later steps."
+  value       = module.log_analytics.id
+}

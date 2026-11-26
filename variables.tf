@@ -97,3 +97,48 @@ variable "activity_log_enabled" {
   type        = bool
   default     = false
 }
+
+variable "hub_network" {
+  description = "Address space and subnets of the hub VNet. Must not overlap any spoke or another environment."
+  type = object({
+    address_space = list(string)
+    subnets = map(object({
+      address_prefixes                  = list(string)
+      service_endpoints                 = optional(list(string), [])
+      private_endpoint_network_policies = optional(string, "Enabled")
+    }))
+  })
+  default = {
+    address_space = ["10.10.0.0/24"]
+    subnets = {
+      shared = { address_prefixes = ["10.10.0.0/26"] }
+    }
+  }
+}
+
+variable "spoke_networks" {
+  description = "Spoke VNets keyed by role. Each key must also be in resource_group_purposes, because the spoke goes in that resource group."
+  type = map(object({
+    address_space = list(string)
+    subnets = map(object({
+      address_prefixes                  = list(string)
+      service_endpoints                 = optional(list(string), [])
+      private_endpoint_network_policies = optional(string, "Enabled")
+    }))
+  }))
+  default = {
+    app = {
+      address_space = ["10.11.0.0/24"]
+      subnets = {
+        workload          = { address_prefixes = ["10.11.0.0/26"] }
+        private-endpoints = { address_prefixes = ["10.11.0.64/26"] }
+      }
+    }
+  }
+}
+
+variable "network_diagnostics_enabled" {
+  description = "Send NSG logs to the environment's Log Analytics workspace."
+  type        = bool
+  default     = true
+}

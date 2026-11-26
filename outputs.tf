@@ -39,3 +39,13 @@ output "log_analytics_workspace_id" {
   description = "Resource ID of the Log Analytics workspace, used by diagnostic settings in later steps."
   value       = module.log_analytics.id
 }
+
+output "hub_vnet_name" {
+  description = "Name of the hub virtual network."
+  value       = module.network.hub_vnet_name
+}
+
+output "subnet_ids" {
+  description = "Subnet IDs keyed by \"role/subnet\", for example subnet_ids[\"app/private-endpoints\"]. Used by private endpoints in later steps."
+  value       = module.network.subnet_ids
+}

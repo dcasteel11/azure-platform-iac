@@ -14,10 +14,12 @@ One `.tfvars` file per environment. The Terraform code in the repo root is the s
 | Resource group `core` (shared platform services) | `rg-plat-core-dev-eus-001` | `rg-plat-core-prod-eus-001` |
 | Resource group `app` (the workload) | `rg-plat-app-dev-eus-001` | `rg-plat-app-prod-eus-001` |
 | Log Analytics workspace (in `core`) | `log-plat-dev-eus-001` | `log-plat-prod-eus-001` |
+| Hub VNet (in `core`) | `vnet-plat-hub-dev-eus-001`, `10.10.0.0/24` | `vnet-plat-hub-prod-eus-001`, `10.20.0.0/24` |
+| App spoke VNet (in `app`), peered to the hub | `vnet-plat-app-dev-eus-001`, `10.11.0.0/24` | `vnet-plat-app-prod-eus-001`, `10.21.0.0/24` |
 | Subscription budget | Yes | No, dev owns it (one subscription) |
 | Subscription activity log to the workspace | Yes | No, dev owns it (one subscription) |
 
-Resource groups and budgets are free. The workspaces stay inside the free Log Analytics allowance with a 30 day retention and a 0.15 GB daily cap.
+Resource groups, budgets, VNets, subnets and NSGs are free. The workspaces stay inside the free Log Analytics allowance with a 30 day retention and a 0.15 GB daily cap.
 
 ## Usage
 
@@ -46,6 +48,7 @@ terraform plan -var-file=environments/prod.tfvars
 | `extra_tags` | Optional extra tags, for example `criticality` in prod |
 | `resource_group_purposes` | Resource groups to create, one per purpose |
 | `budget_enabled`, `budget_amount` | Subscription budget (only one environment should own it) |
+| `hub_network`, `spoke_networks` | Address ranges and subnets; must not overlap between environments. Spoke keys must also be in `resource_group_purposes` |
 | `activity_log_enabled` | Send the subscription activity log to this environment's workspace (only one environment should own it) |
 
 ## Design notes

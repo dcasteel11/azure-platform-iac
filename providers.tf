@@ -29,6 +29,7 @@ provider "azurerm" {
   resource_providers_to_register = [
     "Microsoft.Consumption",         # budget (step 5)
     "Microsoft.Insights",            # diagnostic settings (step 7)
+    "Microsoft.Network",             # VNets, subnets, NSGs, peering (step 8)
     "Microsoft.OperationalInsights", # Log Analytics workspace (step 7)
   ]
 }

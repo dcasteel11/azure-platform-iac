@@ -19,7 +19,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Budget alert | Done |
 | Environments (dev, prod) and resource groups | Done |
 | Logging (Log Analytics, activity log) | Done |
-| Networking, Key Vault, policy | Planned |
+| Networking (hub and spoke, NSGs) | Done |
+| Key Vault, policy | Planned |
 | Workload and drift detection | Planned |
 
 ## Repository layout
@@ -38,6 +39,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 │   ├── naming/            # naming convention, required tags, unit tests
 │   ├── resource-groups/   # resource groups per purpose, unit tests
 │   ├── log-analytics/     # workspace, activity log and audit diagnostics, unit tests
+│   ├── network/           # hub and spoke VNets, NSG per subnet, peering, unit tests
 │   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
@@ -75,6 +77,10 @@ terraform -chdir=modules/resource-groups test
 # unit tests for the log-analytics module (mock provider)
 terraform -chdir=modules/log-analytics init -backend=false
 terraform -chdir=modules/log-analytics test
+
+# unit tests for the network module (mock provider)
+terraform -chdir=modules/network init -backend=false
+terraform -chdir=modules/network test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -105,6 +111,10 @@ Dev and prod run the same Terraform code. Only the values in [environments/](env
 
 Each environment has a Log Analytics workspace in its `core` resource group, for example `log-plat-dev-eus-001`, built by [modules/log-analytics](modules/log-analytics/). It keeps 30 days of data and has a 0.15 GB daily ingestion cap, which keeps a month inside the free 5 GB. The subscription activity log (every create, change and delete) is sent to the dev workspace, and the workspace logs who queried it. Later steps send their diagnostics to the same place. See [ADR 0008](docs/decisions/0008-log-analytics-free-tier.md).
 
+## Networking
+
+Each environment has a small hub-and-spoke network built by [modules/network](modules/network/): a hub VNet in the `core` group for shared services (for example `vnet-plat-hub-dev-eus-001`, `10.10.0.0/24`) and an `app` spoke VNet in the `app` group (`10.11.0.0/24`), peered both ways. Every subnet has its own NSG, which by default denies inbound traffic from the internet, and no subnet has implicit outbound internet access. NSG logs go to the environment's workspace. prod uses `10.20` and `10.21` so the ranges never overlap. VNets, subnets and NSGs are free. See [ADR 0009](docs/decisions/0009-network-module-adapted-from-hub-spoke.md).
+
 ## Naming and tags
 
 Every resource gets its name and tags from [modules/naming](modules/naming/), for example `rg-plat-dev-eus-001`, and carries the tags `environment`, `workload`, `owner`, `cost-center` and `managed-by`. See [ADR 0003](docs/decisions/0003-naming-and-tagging.md).
@@ -118,7 +128,7 @@ Every resource gets its name and tags from [modules/naming](modules/naming/), fo
 
 ## Related repos
 
-- [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) - hub-and-spoke network module, reused here in the networking step.
+- [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) - hub-and-spoke network module; [modules/network](modules/network/) is adapted from it (see ADR 0009).
 - [devsecops-pipeline-templates](https://github.com/dcasteel11/devsecops-pipeline-templates) - reusable security gates for GitHub Actions and Azure DevOps.
 
 ## License

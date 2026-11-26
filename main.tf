@@ -76,3 +76,43 @@ module "log_analytics" {
   activity_log_enabled = var.activity_log_enabled
   subscription_id      = data.azurerm_subscription.current.id
 }
+
+# Step 8: hub-and-spoke networking.
+# The hub VNet lives in the core resource group (shared services such as the
+# Key Vault private endpoint in step 9); each spoke lives in the resource group
+# with the same purpose, so the "app" spoke goes in the app group. Address
+# ranges come from the tfvars file; names follow the resource group pattern:
+#   vnet-<workload>-<role>-<environment>-<region>-<instance>
+#   example: vnet-plat-hub-dev-eus-001
+# VNets, subnets and NSGs are free. See modules/network/README.md and ADR 0009.
+locals {
+  vnet_names = {
+    for role in concat(["hub"], keys(var.spoke_networks)) :
+    role => join("-", ["vnet", var.workload, role, var.environment, module.naming.location_short, var.instance])
+  }
+}
+
+module "network" {
+  source = "./modules/network"
+
+  location = var.location
+  tags     = module.naming.tags
+
+  hub = merge(var.hub_network, {
+    name                = local.vnet_names["hub"]
+    resource_group_name = module.resource_groups.names["core"]
+  })
+
+  # Each spoke key must also be in resource_group_purposes, because the spoke
+  # is placed in the resource group with the same name.
+  spokes = {
+    for role, spoke in var.spoke_networks : role => merge(spoke, {
+      name                = local.vnet_names[role]
+      resource_group_name = module.resource_groups.names[role]
+    })
+  }
+
+  # NSG logs go to this environment's workspace (step 7).
+  diagnostics_enabled        = var.network_diagnostics_enabled
+  log_analytics_workspace_id = module.log_analytics.id
+}

@@ -47,7 +47,7 @@ The `<suffix>` is four characters derived from the subscription ID, because stor
 |------|--------------|
 | `bootstrap/bootstrap.sh` | One-time, re-runnable Azure CLI script that creates everything in the Azure table above |
 | `backend.tf` | Remote state in Azure Blob Storage with Entra ID auth. Account details come from flags or `backend.hcl`, never from Git |
-| `providers.tf`, `versions.tf` | azurerm `~> 5.0`, Terraform `>= 1.6`. No credentials in code |
+| `providers.tf`, `versions.tf` | azurerm `~> 5.0`, Terraform `>= 1.9` (see ADR 0009). No credentials in code |
 | `main.tf`, `variables.tf`, `outputs.tf` | Root module. Composes the platform and exposes generated names and tags |
 | `modules/naming/` | Cloud Adoption Framework naming (`rg-plat-dev-eus-001`) and five required tags, with `terraform test` unit tests |
 | `modules/resource-groups/` | One resource group per purpose (`core`, `app`) per environment, for example `rg-plat-core-dev-eus-001` |

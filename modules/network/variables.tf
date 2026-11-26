@@ -90,4 +90,12 @@ variable "log_analytics_workspace_id" {
   description = "Resource ID of the Log Analytics workspace for NSG logs. Required when diagnostics_enabled is true. Pass module.log_analytics.id."
   type        = string
   default     = null
+
+  validation {
+    # Checked as an input rule (it refers to another variable, which needs
+    # Terraform 1.9+). A precondition on a resource would run too late: the
+    # provider would already have failed with a less clear "missing argument".
+    condition     = !var.diagnostics_enabled || var.log_analytics_workspace_id != null
+    error_message = "diagnostics_enabled is true, so log_analytics_workspace_id must be set. Pass module.log_analytics.id."
+  }
 }

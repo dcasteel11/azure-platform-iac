@@ -71,15 +71,6 @@ resource "azurerm_virtual_network" "hub" {
   resource_group_name = var.hub.resource_group_name
   address_space       = var.hub.address_space
   tags                = var.tags
-
-  lifecycle {
-    # Checked on a resource that is always planned, so a missing workspace
-    # stops the plan with a clear message instead of a provider error.
-    precondition {
-      condition     = !var.diagnostics_enabled || var.log_analytics_workspace_id != null
-      error_message = "diagnostics_enabled is true, so log_analytics_workspace_id must be set. Pass module.log_analytics.id."
-    }
-  }
 }
 
 resource "azurerm_virtual_network" "spoke" {

@@ -110,7 +110,7 @@ resource "azurerm_network_security_rule" "allow_https_from_hub" {
 
 - **One for_each for every subnet.** Hub and spoke subnets are flattened into one map keyed `role/subnet`. Adding a subnet adds one resource and never renumbers or recreates the others, which `count` would.
 - **Address plan.** Each environment gets its own `/24` hub and `/24` spoke range (dev `10.10` and `10.11`, prod `10.20` and `10.21`), set in [environments/](../../environments/). Ranges must not overlap, or peering fails. `/26` subnets leave room for more subnets later; Azure keeps 5 addresses per subnet.
-- **NSG diagnostics use a plain bool.** `count` and `for_each` cannot depend on a value only known after apply, such as a new workspace ID, so `diagnostics_enabled` switches the settings on and a precondition checks that the ID is set.
+- **NSG diagnostics use a plain bool.** `count` and `for_each` cannot depend on a value only known after apply, such as a new workspace ID, so `diagnostics_enabled` switches the settings on and an input validation checks that the ID is set. That validation refers to another variable, so the module needs Terraform 1.9+.
 - **No route tables yet.** The original module sends spoke traffic through a hub firewall when one exists. There is no firewall here (Azure Firewall costs about $900 a month), so routing is left out until one is needed.
 
 ## Tests

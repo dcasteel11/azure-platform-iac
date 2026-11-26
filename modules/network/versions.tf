@@ -1,11 +1,12 @@
 # -----------------------------------------------------------------------------
 # Version constraints for the network module.
 #
-# The module itself works on Terraform 1.6+. Its tests use mock_provider,
-# which needs Terraform 1.7+ (CI uses a newer version).
+# 1.9+ because one input validation refers to another variable
+# (log_analytics_workspace_id checks diagnostics_enabled), which older
+# versions do not allow. CI uses 1.9.8.
 # -----------------------------------------------------------------------------
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.9.0"
 
   required_providers {
     azurerm = {

@@ -164,7 +164,7 @@ run "diagnostics_need_a_workspace" {
     diagnostics_enabled = true
   }
 
-  expect_failures = [azurerm_virtual_network.hub]
+  expect_failures = [var.log_analytics_workspace_id]
 }
 
 run "bad_cidr_is_rejected" {

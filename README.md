@@ -46,7 +46,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 ├── variables.tf           # root inputs (dev defaults)
 ├── outputs.tf             # generated names and tags
 ├── providers.tf           # azurerm provider (no IDs or secrets in code)
-├── versions.tf            # Terraform >= 1.6, azurerm ~> 5.0
+├── versions.tf            # Terraform >= 1.9, azurerm ~> 5.0
 ├── .tflint.hcl            # lint rules (terraform + azurerm rulesets)
 └── ROADMAP.md
 ```

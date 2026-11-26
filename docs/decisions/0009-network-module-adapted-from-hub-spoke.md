@@ -27,3 +27,4 @@ Changing the shared repo is a larger change to a separate public project with it
 - The platform works today on azurerm 5.x, with unit tests in CI.
 - There are two copies of similar code. To converge later: update azure-hub-spoke-terraform (provider range, optional existing resource groups, name inputs), tag a release, then change `source` in `main.tf` to `git::https://github.com/dcasteel11/azure-hub-spoke-terraform.git?ref=<tag>` and use `moved` blocks so no resource is recreated.
 - Pinning a remote module to a tag (not `main`) will matter then: a module change should reach this platform only through a reviewed pull request here.
+- The minimum Terraform version rises from 1.6 to 1.9, because the module checks "diagnostics on needs a workspace ID" as an input validation that refers to another variable. A precondition on a resource fired too late (after the provider's own "missing argument" error). CI already uses 1.9.8.

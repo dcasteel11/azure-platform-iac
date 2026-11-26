@@ -45,7 +45,7 @@ Adapted from [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub
 | `diagnostics_enabled` | bool | `false` | Send NSG logs to `log_analytics_workspace_id` |
 | `log_analytics_workspace_id` | string | `null` | Required when `diagnostics_enabled` is true |
 
-Each subnet takes `address_prefixes`, and optionally `service_endpoints` (default `[]`) and `private_endpoint_network_policies` (default `Enabled`, so NSGs also apply to private endpoints). Subnet keys become `snet-<key>`, except Azure's reserved names (`GatewaySubnet`, `AzureFirewallSubnet`, `AzureBastionSubnet`, ...), which keep their exact name and get no NSG.
+Each subnet takes `address_prefixes`, and optionally `service_endpoints` (default `[]`, turned into azurerm 5.x `service_endpoint` blocks) and `private_endpoint_network_policies` (default `Enabled`, so NSGs also apply to private endpoints). Subnet keys become `snet-<key>`, except Azure's reserved names (`GatewaySubnet`, `AzureFirewallSubnet`, `AzureBastionSubnet`, ...), which keep their exact name and get no NSG.
 
 ## Outputs
 
@@ -121,4 +121,4 @@ terraform init -backend=false
 terraform test
 ```
 
-The tests use `mock_provider "azurerm"`, so they need no Azure account. They check names, that every subnet has an NSG and no default outbound access, two-way peering, reserved subnet handling, NSG diagnostics, and that bad input is rejected: an invalid CIDR, a spoke called `hub`, and diagnostics without a workspace.
+The tests use `mock_provider "azurerm"`, so they need no Azure account. They check names, that every subnet has an NSG and no default outbound access, two-way peering, reserved subnet handling, service endpoint blocks, NSG diagnostics, and that bad input is rejected: an invalid CIDR, a spoke called `hub`, and diagnostics without a workspace.

@@ -115,6 +115,34 @@ run "reserved_subnets_keep_their_name_and_get_no_nsg" {
   }
 }
 
+run "service_endpoints_become_blocks" {
+  command = plan
+
+  variables {
+    hub = {
+      name                = "vnet-plat-hub-dev-eus-001"
+      resource_group_name = "rg-plat-core-dev-eus-001"
+      address_space       = ["10.10.0.0/24"]
+      subnets = {
+        shared = {
+          address_prefixes  = ["10.10.0.0/26"]
+          service_endpoints = ["Microsoft.KeyVault"]
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.this["hub/shared"].service_endpoint) == 1
+    error_message = "Each service endpoint in the list should become one service_endpoint block."
+  }
+
+  assert {
+    condition     = length(azurerm_subnet.this["app/workload"].service_endpoint) == 0
+    error_message = "Subnets without service_endpoints should get no blocks."
+  }
+}
+
 run "nsg_logs_go_to_the_workspace" {
   command = plan
 

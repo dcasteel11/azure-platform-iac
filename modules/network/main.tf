@@ -102,13 +102,23 @@ resource "azurerm_subnet" "this" {
   resource_group_name               = each.value.resource_group_name
   virtual_network_name              = local.vnet_names[each.value.role]
   address_prefixes                  = each.value.address_prefixes
-  service_endpoints                 = each.value.service_endpoints
   private_endpoint_network_policies = each.value.private_endpoint_network_policies
 
   # No implicit outbound internet access. Azure is retiring "default outbound
   # access" for new subnets; anything that needs the internet later gets an
   # explicit path (NAT gateway, firewall), which is easier to audit.
   default_outbound_access_enabled = false
+
+  # azurerm 5.x replaced the service_endpoints list with one service_endpoint
+  # block per service. The input stays a simple list, for example
+  # ["Microsoft.KeyVault"], and is turned into blocks here.
+  dynamic "service_endpoint" {
+    for_each = toset(each.value.service_endpoints)
+
+    content {
+      service = service_endpoint.value
+    }
+  }
 }
 
 # ---------------------------------------------------- Network security groups

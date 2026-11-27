@@ -47,13 +47,15 @@ The `<suffix>` is four characters derived from the subscription ID, because stor
 |------|--------------|
 | `bootstrap/bootstrap.sh` | One-time, re-runnable Azure CLI script that creates everything in the Azure table above |
 | `backend.tf` | Remote state in Azure Blob Storage with Entra ID auth. Account details come from flags or `backend.hcl`, never from Git |
-| `providers.tf`, `versions.tf` | azurerm `~> 5.0`, Terraform `>= 1.6`. No credentials in code |
+| `providers.tf`, `versions.tf` | azurerm `~> 5.0`, Terraform `>= 1.9` (see ADR 0009). No credentials in code |
 | `main.tf`, `variables.tf`, `outputs.tf` | Root module. Composes the platform and exposes generated names and tags |
 | `modules/naming/` | Cloud Adoption Framework naming (`rg-plat-dev-eus-001`) and five required tags, with `terraform test` unit tests |
 | `modules/resource-groups/` | One resource group per purpose (`core`, `app`) per environment, for example `rg-plat-core-dev-eus-001` |
 | `modules/log-analytics/` | Log Analytics workspace per environment in the `core` group (`log-plat-dev-eus-001`), 30 day retention, 0.15 GB daily cap; dev also receives the subscription activity log (see ADR 0008) |
+| `modules/network/` | Hub VNet in `core` and app spoke VNet in `app` per environment, an NSG on every subnet, two-way peering, NSG logs to the workspace (see ADR 0009) |
+| `modules/key-vault/` | Key Vault per environment in `core` with Azure RBAC, firewall deny by default, soft delete, audit log to the workspace, optional private endpoint in the hub (see ADR 0010) |
 | `environments/` | `dev.tfvars` and `prod.tfvars`; dev is deployed by the pipeline with state key `platform.dev.tfstate`, prod uses `platform.prod.tfstate` (see ADR 0007) |
-| `docs/decisions/` | Architecture Decision Records 0001 to 0008 |
+| `docs/decisions/` | Architecture Decision Records 0001 to 0010 |
 
 ## Environment topology
 

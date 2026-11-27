@@ -14,6 +14,8 @@ An ADR captures one significant decision: the context, what was decided, and the
 | [0006](0006-budget-before-resources.md) | A subscription budget with Owner alerts before any billable resource | Accepted |
 | [0007](0007-environments-with-tfvars.md) | One root module per environment via tfvars files and separate state keys | Accepted |
 | [0008](0008-log-analytics-free-tier.md) | A Log Analytics workspace per environment, capped inside the free tier | Accepted |
+| [0009](0009-network-module-adapted-from-hub-spoke.md) | A local network module adapted from azure-hub-spoke-terraform | Accepted |
+| [0010](0010-key-vault-rbac-and-firewall.md) | Key Vault per environment with RBAC, a deny-by-default firewall and an optional private endpoint | Accepted |
 
 ## Template
 

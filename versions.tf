@@ -7,8 +7,9 @@
 # See docs/decisions/0002-upgrade-to-azurerm-5.md for why we use 5.x.
 # -----------------------------------------------------------------------------
 terraform {
-  # 1.6+ is needed for the native "terraform test" framework used later.
-  required_version = ">= 1.6.0"
+  # 1.9+: modules/network has an input validation that refers to another
+  # variable, which Terraform 1.9 added. CI uses 1.9.8.
+  required_version = ">= 1.9.0"
 
   required_providers {
     azurerm = {

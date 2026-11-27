@@ -19,7 +19,9 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Budget alert | Done |
 | Environments (dev, prod) and resource groups | Done |
 | Logging (Log Analytics, activity log) | Done |
-| Networking, Key Vault, policy | Planned |
+| Networking (hub and spoke, NSGs) | Done |
+| Key Vault (RBAC, firewall, audit log) | Done |
+| Azure Policy | Planned |
 | Workload and drift detection | Planned |
 
 ## Repository layout
@@ -38,13 +40,15 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 │   ├── naming/            # naming convention, required tags, unit tests
 │   ├── resource-groups/   # resource groups per purpose, unit tests
 │   ├── log-analytics/     # workspace, activity log and audit diagnostics, unit tests
+│   ├── network/           # hub and spoke VNets, NSG per subnet, peering, unit tests
+│   ├── key-vault/         # Key Vault with RBAC, firewall, audit log, optional private endpoint, unit tests
 │   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
 ├── variables.tf           # root inputs (dev defaults)
 ├── outputs.tf             # generated names and tags
 ├── providers.tf           # azurerm provider (no IDs or secrets in code)
-├── versions.tf            # Terraform >= 1.6, azurerm ~> 5.0
+├── versions.tf            # Terraform >= 1.9, azurerm ~> 5.0
 ├── .tflint.hcl            # lint rules (terraform + azurerm rulesets)
 └── ROADMAP.md
 ```
@@ -75,6 +79,14 @@ terraform -chdir=modules/resource-groups test
 # unit tests for the log-analytics module (mock provider)
 terraform -chdir=modules/log-analytics init -backend=false
 terraform -chdir=modules/log-analytics test
+
+# unit tests for the network module (mock provider)
+terraform -chdir=modules/network init -backend=false
+terraform -chdir=modules/network test
+
+# unit tests for the key-vault module (mock provider)
+terraform -chdir=modules/key-vault init -backend=false
+terraform -chdir=modules/key-vault test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -105,6 +117,14 @@ Dev and prod run the same Terraform code. Only the values in [environments/](env
 
 Each environment has a Log Analytics workspace in its `core` resource group, for example `log-plat-dev-eus-001`, built by [modules/log-analytics](modules/log-analytics/). It keeps 30 days of data and has a 0.15 GB daily ingestion cap, which keeps a month inside the free 5 GB. The subscription activity log (every create, change and delete) is sent to the dev workspace, and the workspace logs who queried it. Later steps send their diagnostics to the same place. See [ADR 0008](docs/decisions/0008-log-analytics-free-tier.md).
 
+## Networking
+
+Each environment has a small hub-and-spoke network built by [modules/network](modules/network/): a hub VNet in the `core` group for shared services (for example `vnet-plat-hub-dev-eus-001`, `10.10.0.0/24`) and an `app` spoke VNet in the `app` group (`10.11.0.0/24`), peered both ways. Every subnet has its own NSG, which by default denies inbound traffic from the internet, and no subnet has implicit outbound internet access. NSG logs go to the environment's workspace. prod uses `10.20` and `10.21` so the ranges never overlap. VNets, subnets and NSGs are free. See [ADR 0009](docs/decisions/0009-network-module-adapted-from-hub-spoke.md).
+
+## Secrets
+
+Each environment has a Key Vault in its `core` group, built by [modules/key-vault](modules/key-vault/), for example `kv-plat-dev-eus<suffix>` (the suffix is 4 characters from a hash of the subscription ID, because vault names are global). Access uses Azure RBAC role assignments, not access policies, and the vault firewall denies every network that is not explicitly allowed. Every secret operation is logged to the workspace. prod keeps deleted secrets for 30 days with purge protection. A private endpoint in the hub is supported but off, because it costs about $8 a month. See [ADR 0010](docs/decisions/0010-key-vault-rbac-and-firewall.md).
+
 ## Naming and tags
 
 Every resource gets its name and tags from [modules/naming](modules/naming/), for example `rg-plat-dev-eus-001`, and carries the tags `environment`, `workload`, `owner`, `cost-center` and `managed-by`. See [ADR 0003](docs/decisions/0003-naming-and-tagging.md).
@@ -118,7 +138,7 @@ Every resource gets its name and tags from [modules/naming](modules/naming/), fo
 
 ## Related repos
 
-- [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) - hub-and-spoke network module, reused here in the networking step.
+- [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) - hub-and-spoke network module; [modules/network](modules/network/) is adapted from it (see ADR 0009).
 - [devsecops-pipeline-templates](https://github.com/dcasteel11/devsecops-pipeline-templates) - reusable security gates for GitHub Actions and Azure DevOps.
 
 ## License

@@ -32,7 +32,7 @@ variable "instance" {
 }
 
 variable "unique_suffix" {
-  description = "Optional 0 to 4 characters added to globally unique names if a name is already taken."
+  description = "Optional 0 to 4 lowercase letters or digits added to globally unique names (Key Vault). Empty means the first 4 characters of a SHA-256 hash of the subscription ID."
   type        = string
   default     = ""
 }
@@ -96,4 +96,90 @@ variable "activity_log_enabled" {
   description = "Send the subscription activity log to this environment's workspace. Subscription-wide, so enable it in one environment only."
   type        = bool
   default     = false
+}
+
+variable "hub_network" {
+  description = "Address space and subnets of the hub VNet. Must not overlap any spoke or another environment."
+  type = object({
+    address_space = list(string)
+    subnets = map(object({
+      address_prefixes                  = list(string)
+      service_endpoints                 = optional(list(string), [])
+      private_endpoint_network_policies = optional(string, "Enabled")
+    }))
+  })
+  default = {
+    address_space = ["10.10.0.0/24"]
+    subnets = {
+      shared = { address_prefixes = ["10.10.0.0/26"] }
+    }
+  }
+}
+
+variable "spoke_networks" {
+  description = "Spoke VNets keyed by role. Each key must also be in resource_group_purposes, because the spoke goes in that resource group."
+  type = map(object({
+    address_space = list(string)
+    subnets = map(object({
+      address_prefixes                  = list(string)
+      service_endpoints                 = optional(list(string), [])
+      private_endpoint_network_policies = optional(string, "Enabled")
+    }))
+  }))
+  default = {
+    app = {
+      address_space = ["10.11.0.0/24"]
+      subnets = {
+        workload          = { address_prefixes = ["10.11.0.0/26"] }
+        private-endpoints = { address_prefixes = ["10.11.0.64/26"] }
+      }
+    }
+  }
+}
+
+variable "network_diagnostics_enabled" {
+  description = "Send NSG logs to the environment's Log Analytics workspace."
+  type        = bool
+  default     = true
+}
+
+variable "key_vault_soft_delete_retention_days" {
+  description = "Days a deleted Key Vault or secret can be recovered (7 to 90). Fixed once the vault exists."
+  type        = number
+  default     = 7
+}
+
+variable "key_vault_purge_protection_enabled" {
+  description = "Block permanent deletion of the Key Vault until soft delete expires. Cannot be turned off once on."
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_allowed_ip_rules" {
+  description = "Public IPs or CIDR ranges allowed through the Key Vault firewall, for example your own IP. Set with TF_VAR_key_vault_allowed_ip_rules, never in a committed file."
+  type        = list(string)
+  default     = []
+  sensitive   = true
+}
+
+variable "key_vault_role_assignments" {
+  description = "Optional Key Vault role assignments, keyed by label. Needs a deploy identity that can assign roles; the pipeline (Contributor) cannot, so leave empty there."
+  type = map(object({
+    principal_id         = string
+    role_definition_name = string
+    principal_type       = optional(string)
+  }))
+  default = {}
+}
+
+variable "key_vault_private_endpoint_enabled" {
+  description = "Give the Key Vault a private endpoint in the hub and turn off its public endpoint. Costs about $8 a month."
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_private_endpoint_subnet" {
+  description = "Key of the subnet for the Key Vault private endpoint in module.network.subnet_ids, in \"role/subnet\" form."
+  type        = string
+  default     = "hub/shared"
 }

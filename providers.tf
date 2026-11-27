@@ -13,7 +13,18 @@
 # -----------------------------------------------------------------------------
 provider "azurerm" {
   # The features block is required, even when empty.
-  features {}
+  features {
+    key_vault {
+      # On "terraform destroy", leave the vault soft-deleted instead of
+      # purging it, so a mistaken destroy can still be undone in the portal
+      # (Key vaults > Manage deleted vaults) until retention runs out.
+      purge_soft_delete_on_destroy = false
+
+      # If a soft-deleted vault with the same name exists when Terraform
+      # creates the vault, recover it instead of failing with a name clash.
+      recover_soft_deleted_key_vaults = true
+    }
+  }
 
   # Resource providers: every Azure service (Log Analytics, Key Vault,
   # networking...) is a "resource provider" that a subscription must be
@@ -29,6 +40,8 @@ provider "azurerm" {
   resource_providers_to_register = [
     "Microsoft.Consumption",         # budget (step 5)
     "Microsoft.Insights",            # diagnostic settings (step 7)
+    "Microsoft.KeyVault",            # Key Vault (step 9)
+    "Microsoft.Network",             # VNets, subnets, NSGs, peering (step 8)
     "Microsoft.OperationalInsights", # Log Analytics workspace (step 7)
   ]
 }

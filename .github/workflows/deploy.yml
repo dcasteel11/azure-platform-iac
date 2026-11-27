@@ -114,6 +114,23 @@ jobs:
           --query "[].name"
           --output tsv
 
+      # Make sure the subscription is registered for every Azure service the
+      # platform uses. Terraform's own registration did not take effect for
+      # Microsoft.Insights on this subscription, so the pipeline does it
+      # explicitly. It is idempotent and quick when already registered.
+      # Add a namespace here with the first resource that needs it.
+      - name: register resource providers
+        timeout-minutes: 10
+        run: |
+          for ns in Microsoft.Consumption Microsoft.Insights Microsoft.OperationalInsights; do
+            state="$(az provider show --namespace "$ns" --query registrationState --output tsv)"
+            if [ "$state" != "Registered" ]; then
+              echo "Registering $ns (was $state)"
+              az provider register --namespace "$ns" --wait
+            fi
+            echo "$ns: $(az provider show --namespace "$ns" --query registrationState --output tsv)"
+          done
+
       - name: terraform init
         timeout-minutes: 4
         env:
@@ -207,6 +224,23 @@ jobs:
           --num-results 5
           --query "[].name"
           --output tsv
+
+      # Make sure the subscription is registered for every Azure service the
+      # platform uses. Terraform's own registration did not take effect for
+      # Microsoft.Insights on this subscription, so the pipeline does it
+      # explicitly. It is idempotent and quick when already registered.
+      # Add a namespace here with the first resource that needs it.
+      - name: register resource providers
+        timeout-minutes: 10
+        run: |
+          for ns in Microsoft.Consumption Microsoft.Insights Microsoft.OperationalInsights; do
+            state="$(az provider show --namespace "$ns" --query registrationState --output tsv)"
+            if [ "$state" != "Registered" ]; then
+              echo "Registering $ns (was $state)"
+              az provider register --namespace "$ns" --wait
+            fi
+            echo "$ns: $(az provider show --namespace "$ns" --query registrationState --output tsv)"
+          done
 
       - name: terraform init
         timeout-minutes: 4

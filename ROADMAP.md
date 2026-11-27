@@ -11,7 +11,7 @@ The platform is built one step at a time. Each step is a working, validated chan
 - [x] **7. Log Analytics workspace** - one workspace per environment, 30 day retention and a daily cap inside the free 5 GB, subscription activity log and workspace audit diagnostic settings; mock-provider unit tests (see [modules/log-analytics](modules/log-analytics/) and ADR 0008)
 - [x] **8. Networking** - hub VNet in `core`, app spoke VNet in `app`, an NSG on every subnet, two-way peering, NSG logs to Log Analytics, no default outbound access; adapted from [azure-hub-spoke-terraform](https://github.com/dcasteel11/azure-hub-spoke-terraform) as a local module because of its azurerm 4.x pin; mock-provider unit tests (see [modules/network](modules/network/) and ADR 0009)
 - [x] **9. Key Vault** - one vault per environment in `core` with Azure RBAC (no access policies), firewall deny by default, soft delete (prod: 30 days and purge protection), audit log to Log Analytics, optional private endpoint in the hub with private DNS; name suffix from a hash of the subscription ID; mock-provider unit tests (see [modules/key-vault](modules/key-vault/) and ADR 0010)
-- [ ] **10. Azure Policy** - allowed locations, require tags, deny public IPs on NICs
+- [ ] **10. Azure Policy and pipeline roles** - allowed locations, require tags, deny public IPs on NICs; the bootstrap gives the pipeline the extra roles it needs: Resource Policy Contributor for policy assignments, and Role Based Access Control Administrator with a condition that only allows Key Vault roles, so Key Vault access (for example `Key Vault Secrets Officer` for the owner) is granted in code through `key_vault_role_assignments` instead of by hand
 - [ ] **11. Free-tier workload** - Static Web App (Free) or Function App (Consumption)
 - [ ] **12. Drift detection** - scheduled `terraform plan -detailed-exitcode`, opens an issue on drift
 - [ ] **13. Documentation** - architecture (Mermaid), runbook, ADRs, getting started
@@ -22,7 +22,6 @@ The platform is built one step at a time. Each step is a working, validated chan
 - Prod stage in the deploy pipeline: plan and apply `environments/prod.tfvars` with its own state key after dev succeeds
 - Delete locks on prod resource groups (needs a role beyond Contributor for the pipeline)
 - Private endpoints: turn on the Key Vault one (already supported by the module) and add an Azure Monitor Private Link Scope for the workspace
-- A deploy identity that may create Key Vault role assignments (for example Role Based Access Control Administrator limited by a condition to Key Vault roles), so app access to secrets is code too
 - Log volume alert on the workspace before the daily cap is hit
 - Defender for Cloud (free tier)
 - Entra groups and RBAC as code

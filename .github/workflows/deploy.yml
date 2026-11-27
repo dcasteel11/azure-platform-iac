@@ -168,7 +168,7 @@ jobs:
       # Save the exact plan so apply runs what was reviewed, nothing newer.
       - name: upload plan
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tfplan
           path: tfplan

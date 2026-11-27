@@ -5,6 +5,15 @@
 # module under modules/ and wires it in here. See ROADMAP.md for the order.
 # -----------------------------------------------------------------------------
 
+# Globally unique names (Key Vault, storage accounts) need a suffix so they
+# do not clash with anyone else's in Azure. Unless unique_suffix is set, use
+# the first 4 characters of a SHA-256 hash of the subscription ID: stable for
+# this subscription, different for every other one, and the ID itself is not
+# revealed. The bootstrap script uses the same rule for the state account.
+locals {
+  unique_suffix = var.unique_suffix != "" ? var.unique_suffix : substr(sha256(data.azurerm_subscription.current.subscription_id), 0, 4)
+}
+
 # Step 2: naming and tagging.
 # Every resource added in later steps takes its name from module.naming.names
 # and its tags from module.naming.tags, for example:
@@ -21,7 +30,7 @@ module "naming" {
   environment   = var.environment
   location      = var.location
   instance      = var.instance
-  unique_suffix = var.unique_suffix
+  unique_suffix = local.unique_suffix
   owner         = var.owner
   cost_center   = var.cost_center
   extra_tags    = var.extra_tags
@@ -114,5 +123,38 @@ module "network" {
 
   # NSG logs go to this environment's workspace (step 7).
   diagnostics_enabled        = var.network_diagnostics_enabled
+  log_analytics_workspace_id = module.log_analytics.id
+}
+
+# Step 9: Key Vault with RBAC authorization.
+# One vault per environment in the core resource group, for example
+# kv-plat-dev-eus1a2b. Access is decided by Azure role assignments (no access
+# policies), the firewall denies every network not listed, and the audit log
+# goes to the environment's workspace. The private endpoint is optional because
+# it costs about $8 a month. See modules/key-vault/README.md and ADR 0010.
+data "azurerm_client_config" "current" {}
+
+module "key_vault" {
+  source = "./modules/key-vault"
+
+  name                = module.naming.names.key_vault
+  location            = var.location
+  resource_group_name = module.resource_groups.names["core"]
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  tags                = module.naming.tags
+
+  soft_delete_retention_days = var.key_vault_soft_delete_retention_days
+  purge_protection_enabled   = var.key_vault_purge_protection_enabled
+  allowed_ip_rules           = var.key_vault_allowed_ip_rules
+  role_assignments           = var.key_vault_role_assignments
+
+  # When enabled, the private endpoint takes an IP from the hub's shared
+  # subnet and the private DNS zone is linked to the hub and every spoke.
+  private_endpoint = var.key_vault_private_endpoint_enabled ? {
+    subnet_id           = module.network.subnet_ids[var.key_vault_private_endpoint_subnet]
+    virtual_network_ids = merge({ hub = module.network.hub_vnet_id }, module.network.spoke_vnet_ids)
+  } : null
+
+  diagnostics_enabled        = true
   log_analytics_workspace_id = module.log_analytics.id
 }

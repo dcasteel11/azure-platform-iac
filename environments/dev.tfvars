@@ -46,3 +46,10 @@ spoke_networks = {
     }
   }
 }
+
+# Key Vault (step 9). dev keeps the shortest soft delete period and no purge
+# protection, so the lab can be destroyed and rebuilt. The private endpoint
+# (about $8 a month) is off; the vault firewall still denies by default.
+key_vault_soft_delete_retention_days = 7
+key_vault_purge_protection_enabled   = false
+key_vault_private_endpoint_enabled   = false

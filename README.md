@@ -20,7 +20,8 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 | Environments (dev, prod) and resource groups | Done |
 | Logging (Log Analytics, activity log) | Done |
 | Networking (hub and spoke, NSGs) | Done |
-| Key Vault, policy | Planned |
+| Key Vault (RBAC, firewall, audit log) | Done |
+| Azure Policy | Planned |
 | Workload and drift detection | Planned |
 
 ## Repository layout
@@ -40,6 +41,7 @@ The platform grows one step at a time. See [ROADMAP.md](ROADMAP.md) for what is 
 │   ├── resource-groups/   # resource groups per purpose, unit tests
 │   ├── log-analytics/     # workspace, activity log and audit diagnostics, unit tests
 │   ├── network/           # hub and spoke VNets, NSG per subnet, peering, unit tests
+│   ├── key-vault/         # Key Vault with RBAC, firewall, audit log, optional private endpoint, unit tests
 │   └── budget/            # subscription budget with email alerts, unit tests
 ├── backend.tf             # remote state in Azure Blob Storage (partial config)
 ├── main.tf                # root module that composes the platform
@@ -81,6 +83,10 @@ terraform -chdir=modules/log-analytics test
 # unit tests for the network module (mock provider)
 terraform -chdir=modules/network init -backend=false
 terraform -chdir=modules/network test
+
+# unit tests for the key-vault module (mock provider)
+terraform -chdir=modules/key-vault init -backend=false
+terraform -chdir=modules/key-vault test
 ```
 
 To deploy to Azure, first run the one-time [bootstrap](bootstrap/README.md) to create remote state storage and the GitHub OIDC identity. A full walkthrough follows in `docs/getting-started.md` (roadmap step 13).
@@ -114,6 +120,10 @@ Each environment has a Log Analytics workspace in its `core` resource group, for
 ## Networking
 
 Each environment has a small hub-and-spoke network built by [modules/network](modules/network/): a hub VNet in the `core` group for shared services (for example `vnet-plat-hub-dev-eus-001`, `10.10.0.0/24`) and an `app` spoke VNet in the `app` group (`10.11.0.0/24`), peered both ways. Every subnet has its own NSG, which by default denies inbound traffic from the internet, and no subnet has implicit outbound internet access. NSG logs go to the environment's workspace. prod uses `10.20` and `10.21` so the ranges never overlap. VNets, subnets and NSGs are free. See [ADR 0009](docs/decisions/0009-network-module-adapted-from-hub-spoke.md).
+
+## Secrets
+
+Each environment has a Key Vault in its `core` group, built by [modules/key-vault](modules/key-vault/), for example `kv-plat-dev-eus<suffix>` (the suffix is 4 characters from a hash of the subscription ID, because vault names are global). Access uses Azure RBAC role assignments, not access policies, and the vault firewall denies every network that is not explicitly allowed. Every secret operation is logged to the workspace. prod keeps deleted secrets for 30 days with purge protection. A private endpoint in the hub is supported but off, because it costs about $8 a month. See [ADR 0010](docs/decisions/0010-key-vault-rbac-and-firewall.md).
 
 ## Naming and tags
 

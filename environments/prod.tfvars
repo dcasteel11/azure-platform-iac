@@ -47,3 +47,11 @@ spoke_networks = {
     }
   }
 }
+
+# Key Vault (step 9). prod keeps deleted secrets for 30 days and turns on purge
+# protection, so nobody (not even an Owner) can permanently delete the vault or
+# a secret before that time. Purge protection can never be turned off again.
+# For a real production platform, also set key_vault_private_endpoint_enabled.
+key_vault_soft_delete_retention_days = 30
+key_vault_purge_protection_enabled   = true
+key_vault_private_endpoint_enabled   = false

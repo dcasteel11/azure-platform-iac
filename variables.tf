@@ -32,7 +32,7 @@ variable "instance" {
 }
 
 variable "unique_suffix" {
-  description = "Optional 0 to 4 characters added to globally unique names if a name is already taken."
+  description = "Optional 0 to 4 lowercase letters or digits added to globally unique names (Key Vault). Empty means the first 4 characters of a SHA-256 hash of the subscription ID."
   type        = string
   default     = ""
 }
@@ -141,4 +141,45 @@ variable "network_diagnostics_enabled" {
   description = "Send NSG logs to the environment's Log Analytics workspace."
   type        = bool
   default     = true
+}
+
+variable "key_vault_soft_delete_retention_days" {
+  description = "Days a deleted Key Vault or secret can be recovered (7 to 90). Fixed once the vault exists."
+  type        = number
+  default     = 7
+}
+
+variable "key_vault_purge_protection_enabled" {
+  description = "Block permanent deletion of the Key Vault until soft delete expires. Cannot be turned off once on."
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_allowed_ip_rules" {
+  description = "Public IPs or CIDR ranges allowed through the Key Vault firewall, for example your own IP. Set with TF_VAR_key_vault_allowed_ip_rules, never in a committed file."
+  type        = list(string)
+  default     = []
+  sensitive   = true
+}
+
+variable "key_vault_role_assignments" {
+  description = "Optional Key Vault role assignments, keyed by label. Needs a deploy identity that can assign roles; the pipeline (Contributor) cannot, so leave empty there."
+  type = map(object({
+    principal_id         = string
+    role_definition_name = string
+    principal_type       = optional(string)
+  }))
+  default = {}
+}
+
+variable "key_vault_private_endpoint_enabled" {
+  description = "Give the Key Vault a private endpoint in the hub and turn off its public endpoint. Costs about $8 a month."
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_private_endpoint_subnet" {
+  description = "Key of the subnet for the Key Vault private endpoint in module.network.subnet_ids, in \"role/subnet\" form."
+  type        = string
+  default     = "hub/shared"
 }

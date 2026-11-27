@@ -120,12 +120,13 @@ resource "azurerm_private_dns_zone" "this" {
 resource "azurerm_private_dns_zone_virtual_network_link" "this" {
   for_each = local.private_endpoint_enabled ? var.private_endpoint.virtual_network_ids : {}
 
-  name                  = "link-${each.key}"
-  resource_group_name   = var.resource_group_name
-  private_dns_zone_name = azurerm_private_dns_zone.this[0].name
-  virtual_network_id    = each.value
-  registration_enabled  = false
-  tags                  = var.tags
+  # azurerm 5.x identifies the zone by its ID (4.x took the zone name and
+  # resource group as two separate arguments).
+  name                 = "link-${each.key}"
+  private_dns_zone_id  = azurerm_private_dns_zone.this[0].id
+  virtual_network_id   = each.value
+  registration_enabled = false
+  tags                 = var.tags
 }
 
 resource "azurerm_private_endpoint" "this" {
